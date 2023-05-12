@@ -1,6 +1,6 @@
 from django.db import models
 from Pipeline.models import Lead
-from constants import StatusConstant, PriorityConstant
+from .constants import StatusConstant, PriorityConstant
 from datetime import date
 
 
@@ -20,13 +20,6 @@ class Project(models.Model):
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
     amount_paid=models.IntegerField(default=0)
-    
-    class Meta:
-        constraints=[
-            models.CheckConstraint(check=models.Q(amount_paid__lte=models.F("value")),
-                                   name="Amount Paid Check",
-                                   violation_error_message="Amount Paid must be less than the value of a project")
-        ]
     
     def __str__(self) -> str:
         return f"Name - {self.name} | Customer - {self.lead.customer.name}"

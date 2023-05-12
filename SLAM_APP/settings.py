@@ -46,6 +46,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     "corsheaders",
+    "Auth",
+    "Pipeline",
+    "Projects",
+    "Accounting"
     
 ]
 
@@ -133,3 +137,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+JWT_KEY=env('JWT_KEY')
