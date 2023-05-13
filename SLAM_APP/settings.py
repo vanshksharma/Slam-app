@@ -90,12 +90,12 @@ WSGI_APPLICATION = 'SLAM_APP.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'some_app',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST':'localhost',
-        'PORT':'3306',
+        'ENGINE': env('DB_ENGINE'),
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST':env('DB_HOST'),
+        'PORT':env('DB_PORT'),
     }
 }
 
@@ -139,4 +139,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
+# Jwt configurations
+
 JWT_KEY=env('JWT_KEY')
+JWT_ALGO=env('JWT_ALGO')

@@ -9,7 +9,7 @@ class LoginUser(models.Model):
     last_name=models.CharField(max_length=20, null=False)
     email=models.EmailField(null=False, unique=True)
     phone_no=PhoneNumberField(unique = True, blank = True, null=True)
-    username=models.CharField(max_length=10, unique=True, null=False)
+    username=models.CharField(max_length=20, unique=True, null=False)
     password=models.BinaryField(null=False,editable=True)
     
     def __str__(self) -> str:

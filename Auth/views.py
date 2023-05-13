@@ -33,7 +33,7 @@ class Login(APIView):
                 'id': user.id,
                 'email': user.email
             }
-            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY)}
+            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)}
 
             return Response(jwt_token, status=status.HTTP_200_OK)
 
@@ -57,7 +57,7 @@ class Signup(APIView):
                 'id': user.id,
                 'email': user.email
             }
-            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY)}
+            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)}
 
             return Response(jwt_token, status=status.HTTP_200_OK)
         
