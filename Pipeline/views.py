@@ -33,7 +33,10 @@ class CustomerHandler(APIView):
     @auth_user
     def put(self,request,user_dict):
         payload=request.data
-        customer_id=payload['id']
+        customer_id=payload.get('id',None)
+        if not customer_id:
+            return Response({'Error':'No Customer ID provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
         try:
             customer=Customer.objects.select_related('user').get(id=customer_id)
         except Customer.DoesNotExist:
