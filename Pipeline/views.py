@@ -57,8 +57,28 @@ class CustomerHandler(APIView):
         else:
             return Response(customer_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
-       
+    
+    @auth_user
+    def delete(self,request,user_dict):
+        payload=request.data
+        customer_id=payload.get('id',None)
+        if not customer_id:
+            return Response({'Error':'No Customer ID provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
         
+        try:
+            customer=Customer.objects.select_related('user').get(id=customer_id)
+        except Customer.DoesNotExist:
+            return Response({'Error':"Please Enter Valid Customer ID"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        if customer.user.id!=user_dict['id']:
+            return Response({'Error':"The Customer does not belong to the user"},
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        customer.delete()
+        return Response({'Message': 'Customer Deleted Successfully'},
+                        status=status.HTTP_200_OK)    
         
         
 
