@@ -37,17 +37,11 @@ class Lead(models.Model):
     customer=models.ForeignKey(Customer,on_delete=models.CASCADE,db_column="customer")
     amount=models.IntegerField(null=True)
     stage=models.CharField(max_length=15,
-                           choices=[(tag, tag.value) for tag in StageConstant],
+                           choices=[(choice.name, choice.value) for choice in StageConstant],
                            default=StageConstant.OPPORTUNITY)
-    confidence=models.IntegerField()
+    confidence=models.FloatField()
     closing_date=models.DateField(null=True,blank=True)
     description=models.TextField(max_length=250,null=True)
-    
-    class Meta:
-        constraints=[
-            models.CheckConstraint(check=models.Q(confidence__gte=0) & models.Q(confidence__lte=1),
-                                   name="Confidence Range Check",)
-        ]
     
     def __str__(self) -> str:
         return f"Customer - {self.customer.name} | Stage - {self.stage}"

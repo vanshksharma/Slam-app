@@ -1,11 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Customer,Address
-from .serializers import CustomerSerializer,AddressSerializer
+from .models import Customer,Address,Lead
+from .serializers import CustomerSerializer,AddressSerializer,LeadSerializer
 from Auth.decorators import auth_user
 from datetime import date
 from .decorators import auth_customer,auth_address
+from .constants import StageConstant
 
 
 class CustomerHandler(APIView):
@@ -98,4 +99,71 @@ class AddressHandler(APIView):
         return Response({'Message': 'Address Deleted Successfully'},
                         status=status.HTTP_200_OK)
             
+
+class LeadHandler(APIView):
+    @auth_user
+    def get(self,request,user_dict):
+        leads=Lead.objects.select_related('customer').filter(customer__user__id=user_dict['id'])
+        lead_data=LeadSerializer(leads,many=True).data
+        return Response({'data':lead_data},
+                        status=status.HTTP_200_OK)
+    
+    @auth_user
+    @auth_customer
+    def post(self,request,user_dict,customer):
+        payload=request.data
+        stage=payload.get('stage',None)
+        closing_date=payload.get('closing_date',None)
+        confidence=payload.get('confidence',None)
+        
+        # Stage Check
+        if not stage:
+            return Response({'Error':'Lead stage not provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            stage=StageConstant[stage.upper()]
+            payload['stage']=stage.name
+        except:
+            return Response({'Error':'Invalid Stage Provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        #Closing Date Check
+        if stage==StageConstant.OPPORTUNITY or stage==StageConstant.CONTACTED or stage==StageConstant.NEGOTIATION:
+            if closing_date:
+                return Response({'Error':"Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+                                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if not closing_date:
+                payload['closing_date']=date.today().isoformat()
+        
+        # Confidence check
+        if not confidence:
+            return Response({'Error':'No Confidence Level Provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            confidence=float(confidence)
+        except:
+            return Response({'Error':'Invalid Confidence Level Provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        if confidence>=0.0 and confidence<=1.0:
+            payload['confidence']=confidence
+        else:
+            return Response({'Error':'Invalid Confidence Level Provided'},
+                        status=status.HTTP_400_BAD_REQUEST)
+        
+        lead_serializer=LeadSerializer(data=payload)
+        if lead_serializer.is_valid():
+            lead=lead_serializer.save()
+            lead_json=lead_serializer.data
+            return Response({'data':lead_json},
+                            status=status.HTTP_200_OK)
+        
+        else:
+            return Response(lead_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        
+            
+        
         
