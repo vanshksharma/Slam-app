@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Customer, Lead, Address
-from Auth.serializers import UserSerializer
 
 
 class CustomerSerializer(serializers.ModelSerializer):

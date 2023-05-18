@@ -128,52 +128,51 @@ class LeadHandler(APIView):
         stage = payload.get('stage', None)
         closing_date = payload.get('closing_date', None)
         confidence = payload.get('confidence', None)
+        amount=payload.get('amount',None)
 
         # Stage Check
-        if not stage:
-            return Response({'Error': 'Lead stage not provided'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        try:
-            stage = StageConstant[stage.upper()]
-            payload['stage'] = stage.name
-        except:
-            return Response({'Error': 'Invalid Stage Provided'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        # Closing Date Check
-        if stage == StageConstant.OPPORTUNITY or stage == StageConstant.CONTACTED or stage == StageConstant.NEGOTIATION:
-            if closing_date:
-                return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+        if stage:
+            try:
+                stage = StageConstant[stage.upper()]
+                payload['stage'] = stage.name
+            except:
+                return Response({'Error': 'Invalid Stage Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
-        else:
-            if not closing_date:
-                payload['closing_date'] = date.today().isoformat()
+
+            # Closing Date Check
+            if stage == StageConstant.OPPORTUNITY or stage == StageConstant.CONTACTED or stage == StageConstant.NEGOTIATION:
+                if closing_date:
+                    return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+                                    status=status.HTTP_400_BAD_REQUEST)
             else:
-                try:
-                    closing_date = datetime.strptime(
-                        closing_date, "%Y-%m-%d").date()
-                    if closing_date < date.today():
+                if not amount:
+                    return Response({'Error': "Amount cannot be null for Closed Won leads"})
+                if not closing_date:
+                    payload['closing_date'] = date.today().isoformat()
+                else:
+                    try:
+                        closing_date = datetime.strptime(
+                            closing_date, "%Y-%m-%d").date()
+                        if closing_date < date.today():
+                            return Response({'Error': "Enter Valid Closing Date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+                    except:
                         return Response({'Error': "Enter Valid Closing Date"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                except:
-                    return Response({'Error': "Enter Valid Closing Date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
 
         # Confidence check
-        if not confidence:
-            return Response({'Error': 'No Confidence Level Provided'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        try:
-            confidence = float(confidence)
-        except:
-            return Response({'Error': 'Invalid Confidence Level Provided'},
-                            status=status.HTTP_400_BAD_REQUEST)
+        if confidence:
+            try:
+                confidence = float(confidence)
+            except:
+                return Response({'Error': 'Invalid Confidence Level Provided'},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-        if confidence >= 0.0 and confidence <= 1.0:
-            payload['confidence'] = confidence
-        else:
-            return Response({'Error': 'Invalid Confidence Level Provided'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            if confidence >= 0.0 and confidence <= 1.0:
+                payload['confidence'] = confidence
+            else:
+                return Response({'Error': 'Invalid Confidence Level Provided'},
+                                status=status.HTTP_400_BAD_REQUEST)
 
         lead_serializer = LeadSerializer(data=payload)
         if lead_serializer.is_valid():
@@ -193,6 +192,7 @@ class LeadHandler(APIView):
         stage = payload.get('stage', None)
         closing_date = payload.get('closing_date', None)
         confidence = payload.get('confidence', None)
+        amount=payload.get('amount',lead.amount)
 
         # Stage and Closing Date Check
         if stage:
@@ -211,6 +211,8 @@ class LeadHandler(APIView):
                     payload['closing_date'] = None
 
             else:
+                if not amount:
+                    return Response({'Error': "Amount cannot be null for Closed Won leads"})
                 if closing_date:
                     try:
                         closing_date = datetime.strptime(

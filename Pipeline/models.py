@@ -38,7 +38,7 @@ class Lead(models.Model):
     amount=models.IntegerField(null=True)
     stage=models.CharField(max_length=15,
                            choices=[(choice.name, choice.value) for choice in StageConstant],
-                           default=StageConstant.OPPORTUNITY)
+                           default=StageConstant.OPPORTUNITY.name)
     confidence=models.FloatField()
     closing_date=models.DateField(null=True,blank=True)
     description=models.TextField(max_length=250,null=True)
