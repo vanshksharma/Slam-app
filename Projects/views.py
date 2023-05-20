@@ -4,7 +4,7 @@ from rest_framework import status
 from .models import Project, Task
 from .serializers import ProjectSerializer, TaskSerializer
 from Auth.decorators import auth_user
-from .decorators import auth_project
+from .decorators import auth_project, auth_task
 from datetime import date, datetime
 from Pipeline.decorators import auth_lead
 from .constants import PriorityConstant, StatusConstant
@@ -15,7 +15,6 @@ from django.db.models import Sum
 
 class ProjectHandler(APIView):
     @auth_user
-    @queries_counter
     def get(self,request,user_dict):
         projects=Project.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
         project_data=ProjectSerializer(projects, many=True).data
@@ -219,4 +218,94 @@ class ProjectHandler(APIView):
     def delete(self,request,user_dict,project):
         project.delete()
         return Response({'Message': 'Project Deleted Successfully'},
+                        status=status.HTTP_200_OK)
+
+
+class TaskHandler(APIView):
+    @auth_user
+    def get(self,request,user_dict):
+        tasks=Task.objects.select_related('project').filter(project__lead__customer__user__id=user_dict['id'])
+        task_data=TaskSerializer(tasks, many=True).data
+        return Response({'data': task_data},
+                        status=status.HTTP_200_OK)
+    
+    @auth_user
+    @auth_project
+    def post(self,request,user_dict,project):
+        if project.status==StatusConstant.COMPLETE.name:
+            return Response({'Error': "Cannot add task to an already completed project"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        payload=request.data
+        _status=payload.get('status', None)
+        priority=payload.get('priority', None)
+        if _status:
+            try:
+                _status=StatusConstant[_status.upper()]
+                payload['status']=_status.name
+            except:
+                return Response({'Error': 'Invalid Status Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        if priority:
+            try:
+                priority=PriorityConstant[priority.upper()]
+                payload['priority']=priority.name
+            except:
+                return Response({'Error': 'Invalid Priority Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            
+        task_serilaizer=TaskSerializer(data=payload)
+        if task_serilaizer.is_valid():
+            task=task_serilaizer.save()
+            task_json=task_serilaizer.data
+            return Response({'data': task_json},
+                            status=status.HTTP_200_OK)
+        
+        else:
+            return Response({task_serilaizer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_task
+    def put(self,request,user_dict,task):
+        payload=request.data
+        _status=payload.get('status', None)
+        priority=payload.get('priority', None)
+        if _status:
+            try:
+                _status=StatusConstant[_status.upper()]
+                payload['status']=_status.name
+            except:
+                return Response({'Error': 'Invalid Status Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            
+            if _status==StatusConstant.INCOMPLETE:
+                if task.project.status==StatusConstant.COMPLETE.name:
+                    return Response({'Error': "Cannot mark the task of an already completed project as Incomplete"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        if priority:
+            try:
+                priority=PriorityConstant[priority.upper()]
+                payload['priority']=priority.name
+            except:
+                return Response({'Error': 'Invalid Priority Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        task_serilaizer=TaskSerializer(task,data=payload,partial=True)
+        if task_serilaizer.is_valid():
+            task=task_serilaizer.save()
+            task_json=task_serilaizer.data
+            return Response({'data': task_json},
+                            status=status.HTTP_200_OK)
+        
+        else:
+            return Response({task_serilaizer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_task
+    def delete(self,request,user_dict,task):
+        task.delete()
+        return Response({'Message': 'Task Deleted Successfully'},
                         status=status.HTTP_200_OK)
