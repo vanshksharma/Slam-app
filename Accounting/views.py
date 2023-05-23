@@ -5,7 +5,8 @@ from .models import Proposal, Payment, Invoice
 from .serializers import ProposalSerializer, PaymentSerializer, InvoiceSerializer
 from Auth.decorators import auth_user
 from Pipeline.decorators import auth_lead
-from .decorators import auth_proposal, auth_invoice
+from .decorators import auth_proposal, auth_invoice, auth_payment
+from Projects.decorators import auth_project
 from datetime import date, datetime
 from Pipeline.constants import StageConstant
 from query_counter.decorators import queries_counter
@@ -19,46 +20,46 @@ class ProposalHandler(APIView):
         return Response({'data': proposal_data},
                         status=status.HTTP_200_OK)
     
-    @auth_user
-    @auth_lead
-    def post(self,request,user_dict,lead):
-        if not (lead.stage==StageConstant.CONTACTED.name or lead.stage==StageConstant.NEGOTIATION.name):
-            return Response({'Error': "Proposal can only be added for Contacted or Negotiation stage."},
-                            status=status.HTTP_400_BAD_REQUEST)
+    # @auth_user
+    # @auth_lead
+    # def post(self,request,user_dict,lead):
+    #     if not (lead.stage==StageConstant.CONTACTED.name or lead.stage==StageConstant.NEGOTIATION.name):
+    #         return Response({'Error': "Proposal can only be added for Contacted or Negotiation stage."},
+    #                         status=status.HTTP_400_BAD_REQUEST)
         
-        payload=request.data
-        proposal_serializer=ProposalSerializer(data=payload)
-        if proposal_serializer.is_valid():
-            proposal=proposal_serializer.save()
-            proposal_json=proposal_serializer.data
-            return Response({'data': proposal_json},
-                            status=status.HTTP_200_OK)
+    #     payload=request.data
+    #     proposal_serializer=ProposalSerializer(data=payload)
+    #     if proposal_serializer.is_valid():
+    #         proposal=proposal_serializer.save()
+    #         proposal_json=proposal_serializer.data
+    #         return Response({'data': proposal_json},
+    #                         status=status.HTTP_200_OK)
         
-        else:
-            return Response(proposal_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+    #     else:
+    #         return Response(proposal_serializer.errors,
+    #                         status=status.HTTP_400_BAD_REQUEST)
     
-    @auth_user
-    @auth_proposal
-    def put(self,request,user_dict,proposal):
-        payload=request.data
-        proposal_serializer=ProposalSerializer(proposal,data=payload,partial=True)
-        if proposal_serializer.is_valid():
-            proposal=proposal_serializer.save()
-            proposal_json=proposal_serializer.data
-            return Response({'data': proposal_json},
-                            status=status.HTTP_200_OK)
+    # @auth_user
+    # @auth_proposal
+    # def put(self,request,user_dict,proposal):
+    #     payload=request.data
+    #     proposal_serializer=ProposalSerializer(proposal,data=payload,partial=True)
+    #     if proposal_serializer.is_valid():
+    #         proposal=proposal_serializer.save()
+    #         proposal_json=proposal_serializer.data
+    #         return Response({'data': proposal_json},
+    #                         status=status.HTTP_200_OK)
         
-        else:
-            return Response(proposal_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+    #     else:
+    #         return Response(proposal_serializer.errors,
+                            # status=status.HTTP_400_BAD_REQUEST)
     
-    @auth_user
-    @auth_proposal
-    def delete(self,request,user_dict,proposal):
-        proposal.delete()
-        return Response({'Message': 'Proposal Deleted Successfully'},
-                        status=status.HTTP_200_OK)
+    # @auth_user
+    # @auth_proposal
+    # def delete(self,request,user_dict,proposal):
+    #     proposal.delete()
+    #     return Response({'Message': 'Proposal Deleted Successfully'},
+    #                     status=status.HTTP_200_OK)
 
 
 class InvoiceHandler(APIView):
@@ -69,42 +70,126 @@ class InvoiceHandler(APIView):
         return Response({'data': invoice_data},
                         status=status.HTTP_200_OK)
     
-    @auth_user
-    @auth_lead
-    def post(self,request,user_dict,lead):
-        if not lead.stage==StageConstant.CLOSED_WON.name:
-            return Response({'Error': "Invoice can only be generated for Closed Won deals."},
-                            status=status.HTTP_400_BAD_REQUEST)
+    # @auth_user
+    # @auth_lead
+    # def post(self,request,user_dict,lead):
+    #     if not lead.stage==StageConstant.CLOSED_WON.name:
+    #         return Response({'Error': "Invoice can only be generated for Closed Won deals."},
+    #                         status=status.HTTP_400_BAD_REQUEST)
         
-        payload=request.data
-        invoice_serializer=InvoiceSerializer(data=payload)
-        if invoice_serializer.is_valid():
-            invoice=invoice_serializer.save()
-            invoice_json=invoice_serializer.data
-            return Response({'data': invoice_json},
-                            status=status.HTTP_200_OK)
-        else:
-            return Response(invoice_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+    #     payload=request.data
+    #     invoice_serializer=InvoiceSerializer(data=payload)
+    #     if invoice_serializer.is_valid():
+    #         invoice=invoice_serializer.save()
+    #         invoice_json=invoice_serializer.data
+    #         return Response({'data': invoice_json},
+    #                         status=status.HTTP_200_OK)
+    #     else:
+    #         return Response(invoice_serializer.errors,
+    #                         status=status.HTTP_400_BAD_REQUEST)
     
-    @auth_user
-    @auth_invoice
-    def put(self,request,user_dict,invoice):
-        payload=request.data
-        invoice_serializer=InvoiceSerializer(invoice,data=payload,partial=True)
-        if invoice_serializer.is_valid():
-            invoice=invoice_serializer.save()
-            invoice_json=invoice_serializer.data
-            return Response({'data': invoice_json},
-                            status=status.HTTP_200_OK)
+    # @auth_user
+    # @auth_invoice
+    # def put(self,request,user_dict,invoice):
+    #     payload=request.data
+    #     invoice_serializer=InvoiceSerializer(invoice,data=payload,partial=True)
+    #     if invoice_serializer.is_valid():
+    #         invoice=invoice_serializer.save()
+    #         invoice_json=invoice_serializer.data
+    #         return Response({'data': invoice_json},
+    #                         status=status.HTTP_200_OK)
         
-        else:
-            return Response(invoice_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+    #     else:
+    #         return Response(invoice_serializer.errors,
+    #                         status=status.HTTP_400_BAD_REQUEST)
     
+    # @auth_user
+    # @auth_invoice
+    # def delete(self,request,user_dict,invoice):
+    #     invoice.delete()
+    #     return Response({'Message': 'Invoice Deleted Successfully'},
+    #                     status=status.HTTP_200_OK)
+
+
+class PaymentHandler(APIView):
     @auth_user
-    @auth_invoice
-    def delete(self,request,user_dict,invoice):
-        invoice.delete()
-        return Response({'Message': 'Invoice Deleted Successfully'},
+    def get(self,request,user_dict):
+        payments=Payment.objects.select_related('project').filter(project__lead__customer__user__id=user_dict['id'])
+        payment_data=PaymentSerializer(payments, many=True).data
+        return Response({'data': payment_data},
                         status=status.HTTP_200_OK)
+    
+    @auth_user
+    @auth_project
+    def post(self,request,user_dict,project):
+        payload=request.data
+        amt_received=payload.get('amount_received',None)
+        if amt_received:
+            try:
+                amt_received=int(amt_received)
+                if amt_received>project.value:
+                    return Response({'Error': "Amount Received cannot be greater than the value of the project"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                
+                if amt_received+project.amount_paid>project.value:
+                    return Response({'Error': "Amount already paid exceeds the project value"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid amount provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        payment_serializer=PaymentSerializer(data=payload)
+        if payment_serializer.is_valid():
+            payment=payment_serializer.save()
+            #Increasing the project amount_paid value
+            project.amount_paid+=amt_received
+            project.save()
+            payment_json=payment_serializer.data
+            return Response({'data': payment_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(payment_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_payment
+    def put(self,request,user_dict,payment):
+        payload=request.data
+        new_amt_received=payload.get('amount_received', None)
+        if new_amt_received:
+            try:
+                new_amt_received=int(new_amt_received)
+                project=payment.project
+                existing_amt=payment.project.amount_paid
+                payment_amount=payment.amount_received
+                if existing_amt-payment_amount+new_amt_received>project.value:
+                    return Response({'Error': "Amount already paid exceeds the project value"},
+                                status=status.HTTP_400_BAD_REQUEST)
+                
+                project.amount_paid+=(new_amt_received-payment_amount)
+                project.save()
+            except:
+                return Response({'Error': "Invalid amount provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        payment_serializer=PaymentSerializer(payment,data=payload,partial=True)
+        if payment_serializer.is_valid():
+            payment=payment_serializer.save()
+            payment_json=payment_serializer.data
+            return Response({'data': payment_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(payment_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)   
+    
+    @auth_user
+    @auth_payment
+    def delete(self,request,user_dict,payment):
+        project=payment.project
+        project.amount_paid-=payment.amount_received
+        project.save()
+        
+        payment.delete()
+        return Response({'Message': 'Payment Deleted Successfully'},
+                        status=status.HTTP_200_OK)
+             

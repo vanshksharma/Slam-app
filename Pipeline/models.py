@@ -42,6 +42,7 @@ class Lead(models.Model):
     confidence=models.FloatField()
     closing_date=models.DateField(null=True,blank=True)
     description=models.TextField(max_length=250,null=True)
+    amount_paid=models.IntegerField(default=0)
     
     def __str__(self) -> str:
         return f"Customer - {self.customer.name} | Stage - {self.stage}"

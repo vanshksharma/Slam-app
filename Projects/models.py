@@ -19,7 +19,7 @@ class Project(models.Model):
                               default=StatusConstant.INCOMPLETE.name)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
-    amount_paid=models.IntegerField(default=0)
+    
     
     def __str__(self) -> str:
         return f"Name - {self.name} | Customer - {self.lead.customer.name}"
