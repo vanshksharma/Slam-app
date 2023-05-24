@@ -1,7 +1,6 @@
 from django.db import models
 from Pipeline.models import Lead
 from datetime import date
-from Projects.models import Project
 
 
 class Proposal(models.Model):
@@ -26,6 +25,7 @@ class Invoice(models.Model):
 
 class Payment(models.Model):
     id=models.AutoField(primary_key=True)
-    project=models.ForeignKey(Project,on_delete=models.CASCADE)
+    lead=models.ForeignKey(Lead,on_delete=models.CASCADE)
     amount_received=models.IntegerField()
+    date=models.DateField(default=date.today)
     
