@@ -14,6 +14,7 @@ class LeadSerializer(serializers.ModelSerializer):
     class Meta:
         model=Lead
         fields='__all__'
+        read_only_fields = ['amount_paid']
 
 
 class AddressSerializer(serializers.ModelSerializer):
