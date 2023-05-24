@@ -5,8 +5,7 @@ from .models import Proposal, Payment, Invoice
 from .serializers import ProposalSerializer, PaymentSerializer, InvoiceSerializer
 from Auth.decorators import auth_user
 from Pipeline.decorators import auth_lead
-from .decorators import auth_proposal, auth_invoice, auth_payment
-from Projects.decorators import auth_project
+from .decorators import auth_payment
 from datetime import date, datetime
 from Pipeline.constants import StageConstant
 from query_counter.decorators import queries_counter
@@ -32,36 +31,51 @@ class InvoiceHandler(APIView):
 class PaymentHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        payments=Payment.objects.select_related('project').filter(project__lead__customer__user__id=user_dict['id'])
+        payments=Payment.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
         payment_data=PaymentSerializer(payments, many=True).data
         return Response({'data': payment_data},
                         status=status.HTTP_200_OK)
     
     @auth_user
-    @auth_project
-    def post(self,request,user_dict,project):
+    @auth_lead
+    def post(self,request,user_dict,lead):
+        if not lead.stage==StageConstant.CLOSED_WON.name:
+            return Response({'Error': "Payments can be added only for Closed Won leads"},
+                            status=status.HTTP_400_BAD_REQUEST)
         payload=request.data
         amt_received=payload.get('amount_received',None)
+        _date=payload.get("date",None)
         if amt_received:
             try:
                 amt_received=int(amt_received)
-                if amt_received>project.value:
-                    return Response({'Error': "Amount Received cannot be greater than the value of the project"},
+                if amt_received>lead.amount:
+                    return Response({'Error': "Amount Received cannot be greater than the value of the Lead"},
                                     status=status.HTTP_400_BAD_REQUEST)
                 
-                if amt_received+project.amount_paid>project.value:
-                    return Response({'Error': "Amount already paid exceeds the project value"},
+                if amt_received+lead.amount_paid>lead.amount:
+                    return Response({'Error': "Amount already paid exceeds the Lead value"},
                                     status=status.HTTP_400_BAD_REQUEST)
+                
+                lead.amount_paid+=amt_received   #Increasing the lead amount_paid value
+                lead.save()
             except:
                 return Response({'Error': "Invalid amount provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if _date:
+            try:
+                _date=datetime.strptime(_date, "%Y-%m-%d").date()
+                if _date<lead.closing_date:
+                    return Response({'Error': "Payment date cannot be before Lead closing date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            
+            except:
+                return Response({'Error': "Enter Valid Date"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         payment_serializer=PaymentSerializer(data=payload)
         if payment_serializer.is_valid():
             payment=payment_serializer.save()
-            #Increasing the project amount_paid value
-            project.amount_paid+=amt_received
-            project.save()
             payment_json=payment_serializer.data
             return Response({'data': payment_json},
                             status=status.HTTP_200_OK)
@@ -74,20 +88,32 @@ class PaymentHandler(APIView):
     def put(self,request,user_dict,payment):
         payload=request.data
         new_amt_received=payload.get('amount_received', None)
+        _date=payload.get("date",None)
         if new_amt_received:
             try:
                 new_amt_received=int(new_amt_received)
-                project=payment.project
-                existing_amt=payment.project.amount_paid
+                lead=payment.lead
+                existing_amt=payment.lead.amount_paid
                 payment_amount=payment.amount_received
-                if existing_amt-payment_amount+new_amt_received>project.value:
-                    return Response({'Error': "Amount already paid exceeds the project value"},
+                if existing_amt-payment_amount+new_amt_received>lead.amount:
+                    return Response({'Error': "Amount already paid exceeds the Lead value"},
                                 status=status.HTTP_400_BAD_REQUEST)
                 
-                project.amount_paid+=(new_amt_received-payment_amount)
-                project.save()
+                lead.amount_paid+=(new_amt_received-payment_amount) # Updating the Lead amount
+                lead.save()
             except:
                 return Response({'Error': "Invalid amount provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if _date:
+            try:
+                _date=datetime.strptime(_date, "%Y-%m-%d").date()
+                if _date<lead.closing_date:
+                    return Response({'Error': "Payment date cannot be before Lead closing date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            
+            except:
+                return Response({'Error': "Enter Valid Date"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         payment_serializer=PaymentSerializer(payment,data=payload,partial=True)
@@ -103,9 +129,9 @@ class PaymentHandler(APIView):
     @auth_user
     @auth_payment
     def delete(self,request,user_dict,payment):
-        project=payment.project
-        project.amount_paid-=payment.amount_received
-        project.save()
+        lead=payment.lead
+        lead.amount_paid-=payment.amount_received
+        lead.save()
         
         payment.delete()
         return Response({'Message': 'Payment Deleted Successfully'},
