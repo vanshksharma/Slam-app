@@ -18,7 +18,7 @@ def auth_payment(func):
             return Response({'Error': "Please Enter Valid Payment ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if payment.project.lead.customer.user.id != user_dict['id']:
+        if payment.lead.customer.user.id != user_dict['id']:
             return Response({'Error': "The Payment does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 

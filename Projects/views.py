@@ -136,7 +136,7 @@ class ProjectHandler(APIView):
                 if _status==StatusConstant.COMPLETE:
                     incomplete_tasks=Task.objects.select_related('project').filter(project__id=project.id, status=StatusConstant.INCOMPLETE.name).count()
                     if incomplete_tasks>0:
-                        return Response({'Error': "Complete all the tasks before marking the project as incomplete"},
+                        return Response({'Error': "Complete all the tasks before marking the project as Complete"},
                                         status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': 'Invalid Status Provided'},
