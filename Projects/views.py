@@ -24,20 +24,19 @@ class ProjectHandler(APIView):
     @auth_user
     @auth_lead
     def post(self,request,user_dict,lead):
-        payload=request.data
-        payload['created_at']=date.today().isoformat()
-        payload['updated_at']=date.today().isoformat()
-        
         if not (lead.stage==StageConstant.CLOSED_WON.name):
             return Response({'Error':"Projects can be added only in Closed_Won stage"},
                             status=status.HTTP_403_FORBIDDEN)
+            
+        payload=request.data
+        payload['created_at']=date.today().isoformat()
+        payload['updated_at']=date.today().isoformat()
         
         priority=payload.get('priority',None)
         value=payload.get('value',None)
         start_date=payload.get('start_date',None)
         due_date=payload.get('due_date',None)
         _status=payload.get('status',None)
-        amount_paid=payload.get('amount_paid',None)
         
         if priority:
             try:
@@ -55,19 +54,12 @@ class ProjectHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if amount_paid and value:
-                try:
-                    if int(amount_paid)>int(value):
-                        return Response({'Error': "Amount paid cannot be greater than the value of the project"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                except:
-                    return Response({'Error': "Invalid amount_paid or value provided"})
-        
         if start_date:
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                if start_date_temp<date.today():
-                        return Response({'Error': "Invalid Start date provided"})
+                if start_date_temp<lead.closing_date:
+                        return Response({'Error': "Project start date cannot be before Lead closing date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': "Invalid Start date provided"})
         
@@ -91,15 +83,20 @@ class ProjectHandler(APIView):
         
         #Checking if this project value is valid corresponding to the lead
         if value:
-            total_projects_value=Project.objects.select_related('lead').filter(lead__id=lead.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
-            if total_projects_value:
-                if lead.amount<total_projects_value+value:
-                    return Response({'Error': "Combined Project values exceeding the lead amount"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-            else:
-                if lead.amount<value:
-                    return Response({'Error': "Project value exceeds the lead amount"},
-                                    status=status.HTTP_400_BAD_REQUEST)
+            try:
+                value=int(value)
+                total_projects_value=Project.objects.select_related('lead').filter(lead__id=lead.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
+                if total_projects_value:
+                    if lead.amount<total_projects_value+value:
+                        return Response({'Error': "Combined Project values exceeding the lead amount"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    if lead.amount<value:
+                        return Response({'Error': "Project value exceeds the lead amount"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid value provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         project_serializer=ProjectSerializer(data=payload)
         if project_serializer.is_valid():
@@ -123,7 +120,6 @@ class ProjectHandler(APIView):
         start_date=payload.get('start_date',None)
         due_date=payload.get('due_date',None)
         _status=payload.get('status',None)
-        amount_paid=payload.get('amount_paid',None)
         
         if priority:
             try:
@@ -137,32 +133,20 @@ class ProjectHandler(APIView):
             try:
                 _status=StatusConstant[_status.upper()]
                 payload['status']=_status.name
+                if _status==StatusConstant.COMPLETE:
+                    incomplete_tasks=Task.objects.select_related('project').filter(project__id=project.id, status=StatusConstant.INCOMPLETE.name).count()
+                    if incomplete_tasks>0:
+                        return Response({'Error': "Complete all the tasks before marking the project as incomplete"},
+                                        status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': 'Invalid Status Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if amount_paid:
-            if value:
-                try:
-                    if int(amount_paid)>int(value):
-                        return Response({'Error': "Amount paid cannot be greater than the value of the project"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                except:
-                    return Response({'Error': "Invalid amount_paid or value provided"})
-            
-            else:
-                try:
-                    if int(amount_paid)>project.value:
-                        return Response({'Error': "Amount paid cannot be greater than the value of the project"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                except:
-                    return Response({'Error': "Invalid amount_paid provided"})
-        
         if start_date:
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                if start_date_temp<project.created_at:
-                        return Response({'Error': "Start date cannot be less than the date on which project was created"})
+                if start_date_temp<project.lead.closing_date:
+                        return Response({'Error': "Project start date cannot be before Lead closing date"})
             except:
                 return Response({'Error': "Invalid Start date provided"})
                 
@@ -188,19 +172,17 @@ class ProjectHandler(APIView):
         if value:
             try:
                 value=int(value)
+                total_projects_value=Project.objects.select_related('lead').filter(lead__id=project.lead.id).exclude(id=project.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
+                if total_projects_value:
+                    if project.lead.amount<total_projects_value+value:
+                        return Response({'Error': "Combined Project values exceeding the lead amount"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    if project.lead.amount<value:
+                        return Response({'Error': "Project value exceeds the lead amount"},
+                                        status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': "Invalid value provided"})
-            if value<project.amount_paid:
-                return Response({'Error': "Value cannot be less than the amount_paid for the project"})
-            total_projects_value=Project.objects.select_related('lead').filter(lead__id=project.lead.id).exclude(id=project.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
-            if total_projects_value:
-                if project.lead.amount<total_projects_value+value:
-                    return Response({'Error': "Combined Project values exceeding the lead amount"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-            else:
-                if project.lead.amount<value:
-                    return Response({'Error': "Project value exceeds the lead amount"},
-                                    status=status.HTTP_400_BAD_REQUEST)
         
         payload['updated_at']=date.today().isoformat()
         project_serializer=ProjectSerializer(project,data=payload,partial=True)
