@@ -43,6 +43,8 @@ class Lead(models.Model):
     closing_date=models.DateField(null=True,blank=True)
     description=models.TextField(max_length=250,null=True)
     amount_paid=models.IntegerField(default=0)
+    created_at=models.DateField(default=date.today)
+    updated_at=models.DateField(default=date.today)
     
     def __str__(self) -> str:
         return f"Customer - {self.customer.name} | Stage - {self.stage}"
