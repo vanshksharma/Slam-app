@@ -8,7 +8,7 @@ from django.conf import settings
 def auth_user(func):
     @wraps(func)
     def wrapper(self, request, *args, **kwargs):
-        token=request.headers.get('token', None)
+        token=request.COOKIES.get('JWT_TOKEN',None)
         if not token:
             return Response({'Error': "Forbidden"},
                             status=status.HTTP_403_FORBIDDEN)

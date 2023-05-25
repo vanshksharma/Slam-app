@@ -6,10 +6,11 @@ import bcrypt
 import jwt
 from django.conf import settings
 from .serializers import UserSerializer
+from datetime import timedelta
+from .decorators import auth_user
 
 
 class Login(APIView):
-    
     def post(self, request):
         username=request.data.get("username",None)
         password=request.data.get("password",None)
@@ -30,12 +31,14 @@ class Login(APIView):
         
         else:
             response={
-                'id': user.id,
-                'email': user.email
+                'id': user.id
             }
-            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)}
-
-            return Response(jwt_token, status=status.HTTP_200_OK)
+            token=jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)
+            token_age=timedelta(days=30).total_seconds()
+            res=Response({'Message': "Login Successful"},
+                         status=status.HTTP_200_OK)
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            return res
 
 
 class Signup(APIView):
@@ -54,14 +57,24 @@ class Signup(APIView):
         if user_serializer.is_valid():
             user=user_serializer.save()
             response={
-                'id': user.id,
-                'email': user.email
+                'id': user.id
             }
-            jwt_token={'token': jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)}
-
-            return Response(jwt_token, status=status.HTTP_200_OK)
+            token=jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)
+            token_age=timedelta(days=30).total_seconds()
+            res=Response({'Message': "Signup Successful"},
+                         status=status.HTTP_200_OK)
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            return res
         
         else:
             return Response(user_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
+
+class Logout(APIView):
+    @auth_user
+    def post(self,request,user_dict):
+        res=Response({'Message': "Logout Successful"},
+                     status=status.HTTP_200_OK)
+        res.delete_cookie('JWT_TOKEN')
+        return res
