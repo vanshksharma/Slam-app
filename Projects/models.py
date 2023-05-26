@@ -35,6 +35,8 @@ class Task(models.Model):
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
                               default=StatusConstant.INCOMPLETE.name)
+    start_date=models.DateField(default=date.today)
+    due_date=models.DateField(null=True)
     
     def __str__(self) -> str:
         return f"Name - {self.name} | Project - {self.project.name}"
