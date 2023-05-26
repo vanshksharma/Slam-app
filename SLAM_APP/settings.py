@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     "Auth",
     "Pipeline",
     "Projects",
-    "Accounting"
+    "Accounting",
+    "Profile"
     
 ]
 
