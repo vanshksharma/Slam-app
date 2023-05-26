@@ -8,6 +8,7 @@ from django.conf import settings
 from .serializers import UserSerializer
 from datetime import timedelta
 from .decorators import auth_user
+from Profile.models import UserProfile
 
 
 class Login(APIView):
@@ -64,6 +65,11 @@ class Signup(APIView):
             res=Response({'Message': "Signup Successful"},
                          status=status.HTTP_200_OK)
             res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            
+            #Setting up profile for user which he/she can edit afterwards
+            user_profile=UserProfile.objects.create(user=user.id)
+            user_profile.save()
+            
             return res
         
         else:
