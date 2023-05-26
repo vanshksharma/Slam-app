@@ -9,6 +9,7 @@ from .decorators import auth_customer, auth_address, auth_lead
 from .constants import StageConstant
 from Accounting.models import Proposal, Invoice
 from Projects.models import Project
+from django.db.models import Q
 
 
 class CustomerHandler(APIView):
@@ -182,6 +183,10 @@ class LeadHandler(APIView):
                 return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
                                     status=status.HTTP_400_BAD_REQUEST)
 
+        if amount:
+            if not stage:
+                return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided an Amount"},
+                                    status=status.HTTP_400_BAD_REQUEST)
         # Confidence check
         if confidence:
             try:
@@ -269,9 +274,6 @@ class LeadHandler(APIView):
                                 if not lead.amount:
                                     return Response({'Error': "Amount cannot be null for Closed Won leads"},
                                                     status=status.HTTP_400_BAD_REQUEST)
-                            if amount<lead.amount_paid:
-                                return Response({'Error': "Lead amount cannot be less than amount already paid"},
-                                                status=status.HTTP_400_BAD_REQUEST)
                             if closing_date:
                                 try:
                                     closing_date_temp = datetime.strptime(
@@ -300,9 +302,22 @@ class LeadHandler(APIView):
                         if closing_date_temp < lead.created_at:
                             return Response({'Error': "Closing date can be before the date of Lead creation"},
                                             status=status.HTTP_400_BAD_REQUEST)
+                        projects_before_new_closing_date=Project.objects.select_related('lead').filter(Q(lead__id=lead.id) & Q(start_date__lt=closing_date)).count()
+                        if projects_before_new_closing_date>0:
+                            return Response({'Error': "Lead contains Projects with start date before the closing date of Lead"},
+                                            status=status.HTTP_400_BAD_REQUEST)
                     except:
                         return Response({'Error': "Enter Valid Closing Date"},
                                         status=status.HTTP_400_BAD_REQUEST)
+        
+        if amount:
+            if not stage:
+                if lead.stage==StageConstant.OPPORTUNITY.name:
+                    return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if amount<lead.amount_paid:
+                    return Response({'Error': "Amount cannot be less than the Already paid amount"},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
         # Confidence Check
         if confidence:
