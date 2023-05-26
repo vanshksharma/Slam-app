@@ -67,7 +67,7 @@ class Signup(APIView):
             res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
             
             #Setting up profile for user which he/she can edit afterwards
-            user_profile=UserProfile.objects.create(user=user.id)
+            user_profile=UserProfile.objects.create(user=user)
             user_profile.save()
             
             return res
