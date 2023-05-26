@@ -274,6 +274,9 @@ class LeadHandler(APIView):
                                 if not lead.amount:
                                     return Response({'Error': "Amount cannot be null for Closed Won leads"},
                                                     status=status.HTTP_400_BAD_REQUEST)
+                            if amount and amount<lead.amount_paid:
+                                return Response({'Error': "Amount cannot be less than the Already paid amount"},
+                                                status=status.HTTP_400_BAD_REQUEST)
                             if closing_date:
                                 try:
                                     closing_date_temp = datetime.strptime(
