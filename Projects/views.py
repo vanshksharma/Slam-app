@@ -10,7 +10,7 @@ from Pipeline.decorators import auth_lead
 from .constants import PriorityConstant, StatusConstant
 from Pipeline.constants import StageConstant
 from query_counter.decorators import queries_counter
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 
 class ProjectHandler(APIView):
@@ -54,32 +54,20 @@ class ProjectHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date:
+        if start_date and due_date:
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
                 if start_date_temp<lead.closing_date:
-                        return Response({'Error': "Project start date cannot be before Lead closing date"},
+                        return Response({'Error': "Project Start date cannot be before Lead Closing date"},
                                         status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp<start_date_temp:
+                        return Response({'Error': "Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                
             except:
-                return Response({'Error': "Invalid Start date provided"})
-        
-        if due_date:
-            if start_date:
-                try:
-                    start_date=datetime.strptime(start_date, "%Y-%m-%d").date()
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d").date()
-                    if due_date<start_date:
-                        return Response({'Error': "Due date cannot be before Start date"})
-                except:
-                    return Response({'Error': "Invalid Start date or Due date provided"})
-            
-            else:
-                try:
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d").date()
-                    if due_date<date.today():
-                        return Response({'Error': "Due date cannot be before Start date"})
-                except:
-                    return Response({'Error': "Invalid Due date provided"})
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         #Checking if this project value is valid corresponding to the lead
         if value:
@@ -142,31 +130,55 @@ class ProjectHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date:
+        if start_date and not due_date:
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
                 if start_date_temp<project.lead.closing_date:
-                        return Response({'Error': "Project start date cannot be before Lead closing date"})
+                        return Response({'Error': "Project start date cannot be before Lead closing date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                if start_date_temp>project.due_date:
+                    return Response({'Error': "Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                tasks_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(start_date__lt=start_date_temp)).count()
+                if tasks_before_new_start_date>0:
+                    return Response({'Error': "Project contains Tasks with start date before the start date of Project"},
+                                    status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid Start date provided"})
-                
-        if due_date:
-            if start_date:
-                try:
-                    start_date=datetime.strptime(start_date, "%Y-%m-%d").date()
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d").date()
-                    if due_date<start_date:
-                        return Response({'Error': "Due date cannot be before Start date"})
-                except:
-                    return Response({'Error': "Invalid Start date or Due date provided"})
+                return Response({'Error': "Invalid Start date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if due_date and not start_date:
+            try:
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if due_date_temp<project.start_date:
+                    return Response({'Error': "Project Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                tasks_after_new_due_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(due_date__gt=due_date_temp)).count()
+                if tasks_after_new_due_date>0:
+                    return Response({'Error': "Project contains Tasks with Due date after the Due date of Project"},
+                                    status=status.HTTP_400_BAD_REQUEST)
             
-            else:
-                try:
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d").date()
-                    if due_date<project.start_date:
-                        return Response({'Error': "Due date cannot be before Start date"})
-                except:
-                    return Response({'Error': "Invalid Due date provided"})
+            except:
+                return Response({'Error': "Invalid Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if start_date and due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if start_date_temp<project.lead.closing_date:
+                        return Response({'Error': "Project Start date cannot be before Lead Closing date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp<start_date_temp:
+                        return Response({'Error': "Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                tasks_after_new_due_date_and_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & (Q(due_date__gt=due_date_temp) | Q(start_date__lt=start_date_temp))).count()
+                if tasks_after_new_due_date_and_before_new_start_date>0:
+                    return Response({'Error': "Project contains Tasks with Due date after the Due date of Project or with Start date before the Start date of Project"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         #Checking if this project value is valid corresponding to the lead
         if value:
@@ -182,7 +194,8 @@ class ProjectHandler(APIView):
                         return Response({'Error': "Project value exceeds the lead amount"},
                                         status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid value provided"})
+                return Response({'Error': "Invalid value provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         payload['updated_at']=date.today().isoformat()
         project_serializer=ProjectSerializer(project,data=payload,partial=True)
@@ -220,6 +233,9 @@ class TaskHandler(APIView):
         payload=request.data
         _status=payload.get('status', None)
         priority=payload.get('priority', None)
+        start_date=payload.get('start_date', None)
+        due_date=payload.get('due_date', None)
+        
         if _status:
             try:
                 _status=StatusConstant[_status.upper()]
@@ -235,16 +251,34 @@ class TaskHandler(APIView):
             except:
                 return Response({'Error': 'Invalid Priority Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
+        
+        if start_date and due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if start_date_temp<project.start_date:
+                    return Response({'Error': "Task Start date cannot be before Project Start date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp>project.due_date:
+                    return Response({'Error': "Task Due date cannot be after Project Due date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp<start_date_temp:
+                    return Response({'Error': "Due date cannot be before Start date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
             
-        task_serilaizer=TaskSerializer(data=payload)
-        if task_serilaizer.is_valid():
-            task=task_serilaizer.save()
-            task_json=task_serilaizer.data
+            
+        task_serializer=TaskSerializer(data=payload)
+        if task_serializer.is_valid():
+            task=task_serializer.save()
+            task_json=task_serializer.data
             return Response({'data': task_json},
                             status=status.HTTP_200_OK)
         
         else:
-            return Response({task_serilaizer.errors},
+            return Response(task_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
     
     @auth_user
@@ -253,6 +287,9 @@ class TaskHandler(APIView):
         payload=request.data
         _status=payload.get('status', None)
         priority=payload.get('priority', None)
+        start_date=payload.get('start_date', None)
+        due_date=payload.get('due_date', None)
+        
         if _status:
             try:
                 _status=StatusConstant[_status.upper()]
@@ -274,15 +311,60 @@ class TaskHandler(APIView):
                 return Response({'Error': 'Invalid Priority Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        task_serilaizer=TaskSerializer(task,data=payload,partial=True)
-        if task_serilaizer.is_valid():
-            task=task_serilaizer.save()
-            task_json=task_serilaizer.data
+        
+        if start_date and not due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                if start_date_temp<task.project.start_date:
+                    return Response({'Error': "Task Start date cannot be before Project Start date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if start_date_temp>task.due_date:
+                    return Response({'Error': "Task Start date cannot be after Due date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if due_date and not start_date:
+            try:
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if due_date_temp>task.project.due_date:
+                    return Response({'Error': "Task Due date cannot be after Project Due date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp<task.start_date:
+                    return Response({'Error': "Task Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            
+            except:
+                return Response({'Error': "Invalid Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if start_date and due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if start_date_temp<task.project.start_date:
+                    return Response({'Error': "Task Start date cannot be before Project Start date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp>task.project.due_date:
+                    return Response({'Error': "Task Due date cannot be after Project Due date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                if due_date_temp<start_date_temp:
+                        return Response({'Error': "Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        task_serializer=TaskSerializer(task,data=payload,partial=True)
+        if task_serializer.is_valid():
+            task=task_serializer.save()
+            task_json=task_serializer.data
             return Response({'data': task_json},
                             status=status.HTTP_200_OK)
         
         else:
-            return Response({task_serilaizer.errors},
+            return Response(task_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
     
     @auth_user
