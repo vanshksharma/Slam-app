@@ -208,11 +208,6 @@ class LeadHandler(APIView):
                 # Creating Proposal
                 proposal=Proposal.objects.create(lead=lead,amount=lead.amount,date=lead.created_at)
                 proposal.save()
-            
-            elif lead.stage==StageConstant.CLOSED_WON.name:
-                # Creating Invoice
-                invoice=Invoice.objects.create(lead=lead,amount=lead.amount,due_date=lead.closing_date)
-                invoice.save()
 
             lead_json = lead_serializer.data
             return Response({'data': lead_json},
@@ -241,9 +236,6 @@ class LeadHandler(APIView):
                     if projects>0:
                         return Response({'Error': f"Cannot mark the Lead as {stage.name.capitalize()} as it contains Projects"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                    if lead.amount_paid:
-                                    return Response({'Error': f"Cannot mark an already paid Lead as {stage.name.capitalize()}"},
-                                                    status=status.HTTP_400_BAD_REQUEST)
                 
                 if stage==StageConstant.OPPORTUNITY:
                     if amount:
@@ -274,9 +266,6 @@ class LeadHandler(APIView):
                                 if not lead.amount:
                                     return Response({'Error': "Amount cannot be null for Closed Won leads"},
                                                     status=status.HTTP_400_BAD_REQUEST)
-                            if amount and amount<lead.amount_paid:
-                                return Response({'Error': "Amount cannot be less than the Already paid amount"},
-                                                status=status.HTTP_400_BAD_REQUEST)
                             if closing_date:
                                 try:
                                     closing_date_temp = datetime.strptime(
@@ -318,9 +307,6 @@ class LeadHandler(APIView):
                 if lead.stage==StageConstant.OPPORTUNITY.name:
                     return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
                                     status=status.HTTP_400_BAD_REQUEST)
-                if amount<lead.amount_paid:
-                    return Response({'Error': "Amount cannot be less than the Already paid amount"},
-                                    status=status.HTTP_400_BAD_REQUEST)
 
         # Confidence Check
         if confidence:
@@ -340,12 +326,6 @@ class LeadHandler(APIView):
         if lead_serializer.is_valid():
             lead = lead_serializer.save()
             if lead.stage == StageConstant.CONTACTED.name or lead.stage == StageConstant.NEGOTIATION.name:
-                #Delete Invoice for that lead if exists
-                try:
-                    invoice=Invoice.objects.select_related('lead').get(lead__id=lead.id)
-                    invoice.delete()
-                except Invoice.DoesNotExist:
-                    pass
                 try:
                     proposal=Proposal.objects.select_related('lead').get(lead__id=lead.id)
                     proposal.amount=lead.amount
@@ -355,30 +335,8 @@ class LeadHandler(APIView):
                 finally:
                     proposal.save()
             
-            elif lead.stage==StageConstant.CLOSED_WON.name:
+            elif lead.stage==StageConstant.CLOSED_WON.name or lead.stage==StageConstant.CLOSED_LOST.name or lead.stage==StageConstant.OPPORTUNITY.name:
                 #Delete Proposal for that lead if exists
-                try:
-                    proposal=Proposal.objects.select_related('lead').get(lead__id=lead.id)
-                    proposal.delete()
-                except Proposal.DoesNotExist:
-                    pass
-                
-                try:
-                    invoice=Invoice.objects.select_related('lead').get(lead__id=lead.id)
-                    invoice.amount=lead.amount
-                    invoice.due_date=lead.closing_date
-                except Invoice.DoesNotExist:
-                    invoice=Invoice.objects.create(lead=lead,amount=lead.amount,due_date=lead.closing_date)
-                finally:
-                    invoice.save()
-            
-            elif lead.stage==StageConstant.CLOSED_LOST.name or lead.stage==StageConstant.OPPORTUNITY.name:
-                try:
-                    invoice=Invoice.objects.select_related('lead').get(lead__id=lead.id)
-                    invoice.delete()
-                except Invoice.DoesNotExist:
-                    pass
-                
                 try:
                     proposal=Proposal.objects.select_related('lead').get(lead__id=lead.id)
                     proposal.delete()
