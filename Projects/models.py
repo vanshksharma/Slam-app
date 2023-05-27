@@ -12,8 +12,8 @@ class Project(models.Model):
     priority=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in PriorityConstant],
                               default=PriorityConstant.LOW.name)
-    start_date=models.DateField(default=date.today)
-    due_date=models.DateField(null=True)
+    start_date=models.DateField()
+    due_date=models.DateField()
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
                               default=StatusConstant.INCOMPLETE.name)
