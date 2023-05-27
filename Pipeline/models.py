@@ -42,7 +42,6 @@ class Lead(models.Model):
     confidence=models.FloatField()
     closing_date=models.DateField(null=True,blank=True)
     description=models.TextField(max_length=250,null=True)
-    amount_paid=models.IntegerField(default=0)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
     
