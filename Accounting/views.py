@@ -6,6 +6,7 @@ from .serializers import ProposalSerializer, PaymentSerializer, InvoiceSerialize
 from Auth.decorators import auth_user
 from Pipeline.decorators import auth_lead
 from .decorators import auth_payment
+from Projects.decorators import auth_project
 from datetime import date, datetime
 from Pipeline.constants import StageConstant
 from query_counter.decorators import queries_counter
@@ -37,27 +38,17 @@ class PaymentHandler(APIView):
                         status=status.HTTP_200_OK)
     
     @auth_user
-    @auth_lead
-    def post(self,request,user_dict,lead):
-        if not lead.stage==StageConstant.CLOSED_WON.name:
-            return Response({'Error': "Payments can be added only for Closed Won leads"},
-                            status=status.HTTP_400_BAD_REQUEST)
+    @auth_project
+    def post(self,request,user_dict,project):
         payload=request.data
         amt_received=payload.get('amount_received',None)
         _date=payload.get("date",None)
         if amt_received:
             try:
                 amt_received=int(amt_received)
-                if amt_received>lead.amount:
-                    return Response({'Error': "Amount Received cannot be greater than the value of the Lead"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                
-                if amt_received+lead.amount_paid>lead.amount:
-                    return Response({'Error': "Amount already paid exceeds the Lead value"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                
-                lead.amount_paid+=amt_received   #Increasing the lead amount_paid value
-                lead.save()
+                if amt_received<=0:
+                    return Response({'Error': "Invalid amount provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': "Invalid amount provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
@@ -65,7 +56,7 @@ class PaymentHandler(APIView):
         if _date:
             try:
                 _date=datetime.strptime(_date, "%Y-%m-%d").date()
-                if _date<lead.closing_date:
+                if _date<project.lead.closing_date:
                     return Response({'Error': "Payment date cannot be before Lead closing date"},
                                     status=status.HTTP_400_BAD_REQUEST)
             
@@ -92,15 +83,9 @@ class PaymentHandler(APIView):
         if new_amt_received:
             try:
                 new_amt_received=int(new_amt_received)
-                lead=payment.lead
-                existing_amt=payment.lead.amount_paid
-                payment_amount=payment.amount_received
-                if existing_amt-payment_amount+new_amt_received>lead.amount:
-                    return Response({'Error': "Amount already paid exceeds the Lead value"},
+                if new_amt_received<=0:
+                    return Response({'Error': "Invalid amount provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
-                
-                lead.amount_paid+=(new_amt_received-payment_amount) # Updating the Lead amount
-                lead.save()
             except:
                 return Response({'Error': "Invalid amount provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
@@ -108,7 +93,7 @@ class PaymentHandler(APIView):
         if _date:
             try:
                 _date=datetime.strptime(_date, "%Y-%m-%d").date()
-                if _date<lead.closing_date:
+                if _date<payment.project.lead.closing_date:
                     return Response({'Error': "Payment date cannot be before Lead closing date"},
                                     status=status.HTTP_400_BAD_REQUEST)
             
@@ -129,10 +114,6 @@ class PaymentHandler(APIView):
     @auth_user
     @auth_payment
     def delete(self,request,user_dict,payment):
-        lead=payment.lead
-        lead.amount_paid-=payment.amount_received
-        lead.save()
-        
         payment.delete()
         return Response({'Message': 'Payment Deleted Successfully'},
                         status=status.HTTP_200_OK)
