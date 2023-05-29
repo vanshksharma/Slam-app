@@ -1,13 +1,15 @@
 from django.db import models
 from datetime import date
 from Auth.models import LoginUser
-from .constants import StageConstant
+from .constants import StageConstant, TypeConstant
 
 
-class Customer(models.Model):
+class Contact(models.Model):
     id=models.AutoField(primary_key=True)
     user=models.ForeignKey(LoginUser,on_delete=models.CASCADE,db_column="user")
-    customer_type=models.CharField(max_length=20,null=False)
+    contact_type=models.CharField(max_length=20,
+                                  choices=[(choice.name, choice.value) for choice in TypeConstant],
+                                  default=TypeConstant.INDIVIDUAL.name)
     name=models.CharField(max_length=20,null=False)
     email=models.EmailField(unique=True,null=False)
     created_at=models.DateField(default=date.today)
@@ -19,7 +21,7 @@ class Customer(models.Model):
 
 class Address(models.Model):
     id=models.AutoField(primary_key=True)
-    customer=models.ForeignKey(Customer,on_delete=models.CASCADE,db_column="customer")
+    contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     street=models.CharField(max_length=20,null=False)
     city=models.CharField(max_length=20,null=False)
     state=models.CharField(max_length=20,null=False)
@@ -29,12 +31,12 @@ class Address(models.Model):
     updated_at=models.DateField(default=date.today)
     
     def __str__(self) -> str:
-        return f"Name - {self.customer.name} | City - {self.city}"
+        return f"Name - {self.contact.name} | City - {self.city}"
 
 
 class Lead(models.Model):
     id=models.AutoField(primary_key=True)
-    customer=models.ForeignKey(Customer,on_delete=models.CASCADE,db_column="customer")
+    contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     amount=models.IntegerField(null=True)
     stage=models.CharField(max_length=15,
                            choices=[(choice.name, choice.value) for choice in StageConstant],
@@ -46,7 +48,7 @@ class Lead(models.Model):
     updated_at=models.DateField(default=date.today)
     
     def __str__(self) -> str:
-        return f"Customer - {self.customer.name} | Stage - {self.stage}"
+        return f"Contact - {self.contact.name} | Stage - {self.stage}"
 
 
 

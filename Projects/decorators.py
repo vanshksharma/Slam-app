@@ -18,7 +18,7 @@ def auth_project(func):
             return Response({'Error': "Please Enter Valid Project ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if project.lead.customer.user.id != user_dict['id']:
+        if project.contact.user.id != user_dict['id']:
             return Response({'Error': "The project does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 
@@ -40,7 +40,7 @@ def auth_task(func):
             return Response({'Error': "Please Enter Valid Project ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if task.project.lead.customer.user.id != user_dict['id']:
+        if task.project.contact.user.id != user_dict['id']:
             return Response({'Error': "The Task does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 

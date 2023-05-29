@@ -7,3 +7,7 @@ class StageConstant(Enum):
     NEGOTIATION = "Negotiation"
     CLOSED_WON = "Closed Won"
     CLOSED_LOST = "Closed Lost"
+
+class TypeConstant(Enum):
+    INDIVIDUAL = "Individual"
+    COMPANY = "Company"

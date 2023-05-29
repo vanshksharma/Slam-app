@@ -1,5 +1,5 @@
 from django.db import models
-from Pipeline.models import Lead
+from Pipeline.models import Contact, Lead
 from .constants import StatusConstant, PriorityConstant
 from datetime import date
 
@@ -8,7 +8,7 @@ class Project(models.Model):
     id=models.AutoField(primary_key=True)
     name=models.CharField(max_length=20,null=False)
     value=models.IntegerField(null=False)
-    lead=models.ForeignKey(Lead,on_delete=models.CASCADE,db_column="lead")
+    contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     priority=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in PriorityConstant],
                               default=PriorityConstant.LOW.name)
@@ -19,10 +19,10 @@ class Project(models.Model):
                               default=StatusConstant.INCOMPLETE.name)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
-    
+    lead=models.ForeignKey(Lead, on_delete=models.SET_NULL, db_column="lead", null=True)
     
     def __str__(self) -> str:
-        return f"Name - {self.name} | Customer - {self.lead.customer.name}"
+        return f"Name - {self.name} | Contact - {self.contact.name}"
 
 
 class Task(models.Model):

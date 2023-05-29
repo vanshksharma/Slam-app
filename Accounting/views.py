@@ -15,7 +15,7 @@ from query_counter.decorators import queries_counter
 class ProposalHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        proposals=Proposal.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
+        proposals=Proposal.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
         proposal_data=ProposalSerializer(proposals, many=True).data
         return Response({'data': proposal_data},
                         status=status.HTTP_200_OK)
@@ -24,7 +24,7 @@ class ProposalHandler(APIView):
 class InvoiceHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        invoices=Invoice.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
+        invoices=Invoice.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
         invoice_data=InvoiceSerializer(invoices, many=True).data
         return Response({'data': invoice_data},
                         status=status.HTTP_200_OK)
@@ -32,7 +32,7 @@ class InvoiceHandler(APIView):
 class PaymentHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        payments=Payment.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
+        payments=Payment.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
         payment_data=PaymentSerializer(payments, many=True).data
         return Response({'data': payment_data},
                         status=status.HTTP_200_OK)

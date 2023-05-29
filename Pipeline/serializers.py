@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import Customer, Lead, Address
+from .models import Contact, Lead, Address
 
 
-class CustomerSerializer(serializers.ModelSerializer):
+class ContactSerializer(serializers.ModelSerializer):
     
     class Meta:
-        model=Customer
+        model=Contact
         fields='__all__'
 
 

@@ -1,24 +1,24 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Customer, Address, Lead
-from .serializers import CustomerSerializer, AddressSerializer, LeadSerializer
+from .models import Contact, Address, Lead
+from .serializers import ContactSerializer, AddressSerializer, LeadSerializer
 from Auth.decorators import auth_user
 from datetime import date, datetime
-from .decorators import auth_customer, auth_address, auth_lead
+from .decorators import auth_contact, auth_address, auth_lead
 from .constants import StageConstant
 from Accounting.models import Proposal, Invoice
 from Projects.models import Project
 from django.db.models import Q
 
 
-class CustomerHandler(APIView):
+class ContactHandler(APIView):
     @auth_user
     def get(self, request, user_dict):
-        customers = Customer.objects.select_related(
+        contacts = Contact.objects.select_related(
             'user').filter(user__id=user_dict['id'])
-        customer_data = CustomerSerializer(customers, many=True).data
-        return Response({'data': customer_data},
+        contact_data = ContactSerializer(contacts, many=True).data
+        return Response({'data': contact_data},
                         status=status.HTTP_200_OK)
 
     @auth_user
@@ -27,55 +27,55 @@ class CustomerHandler(APIView):
         payload['user'] = user_dict['id']
         payload['created_at'] = date.today().isoformat()
         payload['updated_at'] = date.today().isoformat()
-        customer_serializer = CustomerSerializer(data=payload)
-        if customer_serializer.is_valid():
-            customer = customer_serializer.save()
-            customer_json = customer_serializer.data
-            return Response({'data': customer_json},
+        contact_serializer = ContactSerializer(data=payload)
+        if contact_serializer.is_valid():
+            contact = contact_serializer.save()
+            contact_json = contact_serializer.data
+            return Response({'data': contact_json},
                             status=status.HTTP_200_OK)
         else:
-            return Response(customer_serializer.errors,
+            return Response(contact_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
     @auth_user
-    @auth_customer
-    def put(self, request, user_dict, customer):
+    @auth_contact
+    def put(self, request, user_dict, contact):
         payload = request.data
         if 'created_at' in payload:
             del payload['created_at']
         payload['updated_at'] = date.today().isoformat()
-        customer_serializer = CustomerSerializer(
-            customer, data=payload, partial=True)
-        if customer_serializer.is_valid():
-            updated_customer = customer_serializer.save()
-            updated_customer_json = customer_serializer.data
-            return Response({'data': updated_customer_json},
+        contact_serializer = ContactSerializer(
+            contact, data=payload, partial=True)
+        if contact_serializer.is_valid():
+            updated_contact = contact_serializer.save()
+            updated_contact_json = contact_serializer.data
+            return Response({'data': updated_contact_json},
                             status=status.HTTP_200_OK)
         else:
-            return Response(customer_serializer.errors,
+            return Response(contact_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
     @auth_user
-    @auth_customer
-    def delete(self, request, user_dict, customer):
-        customer.delete()
-        return Response({'Message': 'Customer Deleted Successfully'},
+    @auth_contact
+    def delete(self, request, user_dict, contact):
+        contact.delete()
+        return Response({'Message': 'Contact Deleted Successfully'},
                         status=status.HTTP_200_OK)
 
 
 class AddressHandler(APIView):
     @auth_user
-    @auth_customer
-    def get(self, request, user_dict, customer):
+    @auth_contact
+    def get(self, request, user_dict, contact):
         address = Address.objects.select_related(
-            'customer').filter(customer__id=customer.id)
+            'contact').filter(contact__id=contact.id)
         address_data = AddressSerializer(address, many=True).data
         return Response({'data': address_data},
                         status=status.HTTP_200_OK)
 
     @auth_user
-    @auth_customer
-    def post(self, request, user_dict, customer):
+    @auth_contact
+    def post(self, request, user_dict, contact):
         payload = request.data
         payload['created_at'] = date.today().isoformat()
         payload['updated_at'] = date.today().isoformat()
@@ -118,15 +118,15 @@ class AddressHandler(APIView):
 class LeadHandler(APIView):
     @auth_user
     def get(self, request, user_dict):
-        leads = Lead.objects.select_related('customer').filter(
-            customer__user__id=user_dict['id'])
+        leads = Lead.objects.select_related('contact').filter(
+            contact__user__id=user_dict['id'])
         lead_data = LeadSerializer(leads, many=True).data
         return Response({'data': lead_data},
                         status=status.HTTP_200_OK)
 
     @auth_user
-    @auth_customer
-    def post(self, request, user_dict, customer):
+    @auth_contact
+    def post(self, request, user_dict, contact):
         payload = request.data
         payload['created_at']=date.today()
         payload['updated_at'] = date.today()

@@ -17,9 +17,5 @@ class UserProfile(models.Model):
     pincode=models.IntegerField(null=True)
     phone_no=PhoneNumberField(unique = True, null=True)
     
-    
-    
-    
-    
-    
-    
+    def __str__(self) -> str:
+        return f"Name - {self.legal_name} | Email - {self.user.email}"

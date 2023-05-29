@@ -1,33 +1,33 @@
 from functools import wraps
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Customer, Address, Lead
+from .models import Contact, Address, Lead
 
 
-def auth_customer(func):
+def auth_contact(func):
     @wraps(func)
     def wrapper(self, request, user_dict, *args, **kwargs):
         if request.method == 'GET':
-            customer_id = request.query_params.get('customer', None)
+            contact_id = request.query_params.get('contact', None)
         else:
-            customer_id = request.data.get('customer', None)
+            contact_id = request.data.get('contact', None)
 
-        if not customer_id:
-            return Response({'Error': 'No Customer ID provided'},
+        if not contact_id:
+            return Response({'Error': 'No Contact ID provided'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            customer = Customer.objects.select_related(
-                'user').get(id=customer_id)
-        except Customer.DoesNotExist:
-            return Response({'Error': "Please Enter Valid Customer ID"},
+            contact = Contact.objects.select_related(
+                'user').get(id=contact_id)
+        except Contact.DoesNotExist:
+            return Response({'Error': "Please Enter Valid Contact ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if customer.user.id != user_dict['id']:
-            return Response({'Error': "The Customer does not belong to the user"},
+        if contact.user.id != user_dict['id']:
+            return Response({'Error': "The Contact does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 
-        return func(self, request, user_dict, customer, *args, **kwargs)
+        return func(self, request, user_dict, contact, *args, **kwargs)
 
     return wrapper
 
@@ -42,13 +42,13 @@ def auth_address(func):
 
         try:
             address = Address.objects.select_related(
-                'customer').get(id=address_id)
+                'contact').get(id=address_id)
         except Address.DoesNotExist:
             return Response({'Error': "Please Enter Valid Address ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if address.customer.user.id != user_dict['id']:
-            return Response({'Error': "The Customer does not belong to the user"},
+        if address.contact.user.id != user_dict['id']:
+            return Response({'Error': "The Contact does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 
         return func(self, request, user_dict, address, *args, **kwargs)
@@ -65,12 +65,12 @@ def auth_lead(func):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            lead = Lead.objects.select_related('customer').get(id=lead_id)
+            lead = Lead.objects.select_related('contact').get(id=lead_id)
         except Lead.DoesNotExist:
             return Response({'Error': "Please Enter Valid Lead ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if lead.customer.user.id != user_dict['id']:
+        if lead.contact.user.id != user_dict['id']:
             return Response({'Error': "The Lead does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 

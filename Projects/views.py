@@ -16,7 +16,7 @@ from django.db.models import Sum, Q
 class ProjectHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        projects=Project.objects.select_related('lead').filter(lead__customer__user__id=user_dict['id'])
+        projects=Project.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
         project_data=ProjectSerializer(projects, many=True).data
         return Response({'data': project_data},
                         status=status.HTTP_200_OK)
@@ -219,7 +219,7 @@ class ProjectHandler(APIView):
 class TaskHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        tasks=Task.objects.select_related('project').filter(project__lead__customer__user__id=user_dict['id'])
+        tasks=Task.objects.select_related('project').filter(project__lead__contact__user__id=user_dict['id'])
         task_data=TaskSerializer(tasks, many=True).data
         return Response({'data': task_data},
                         status=status.HTTP_200_OK)
