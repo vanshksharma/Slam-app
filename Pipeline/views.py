@@ -7,9 +7,6 @@ from Auth.decorators import auth_user
 from datetime import date, datetime
 from .decorators import auth_contact, auth_address, auth_lead
 from .constants import StageConstant
-from Accounting.models import Proposal, Invoice
-from Projects.models import Project
-from django.db.models import Q
 
 
 class ContactHandler(APIView):
@@ -65,10 +62,9 @@ class ContactHandler(APIView):
 
 class AddressHandler(APIView):
     @auth_user
-    @auth_contact
-    def get(self, request, user_dict, contact):
+    def get(self, request, user_dict):
         address = Address.objects.select_related(
-            'contact').filter(contact__id=contact.id)
+            'contact').filter(contact__user__id=user_dict['id'])
         address_data = AddressSerializer(address, many=True).data
         return Response({'data': address_data},
                         status=status.HTTP_200_OK)
@@ -185,7 +181,7 @@ class LeadHandler(APIView):
 
         if amount:
             if not stage:
-                return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided an Amount"},
+                return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
                                     status=status.HTTP_400_BAD_REQUEST)
         # Confidence check
         if confidence:
@@ -203,12 +199,6 @@ class LeadHandler(APIView):
         lead_serializer = LeadSerializer(data=payload)
         if lead_serializer.is_valid():
             lead = lead_serializer.save()
-            
-            if lead.stage == StageConstant.CONTACTED.name or lead.stage == StageConstant.NEGOTIATION.name:
-                # Creating Proposal
-                proposal=Proposal.objects.create(lead=lead,amount=lead.amount,date=lead.created_at)
-                proposal.save()
-
             lead_json = lead_serializer.data
             return Response({'data': lead_json},
                             status=status.HTTP_200_OK)
@@ -225,17 +215,14 @@ class LeadHandler(APIView):
         closing_date = payload.get('closing_date', None)
         confidence = payload.get('confidence', None)
         amount=payload.get('amount',None)
+        payload['updated_at']=date.today().isoformat()
+        if 'created_at' in payload:
+            del payload['created_at']
 
         if stage:
             try:
                 stage = StageConstant[stage.upper()]
                 payload['stage'] = stage.name
-                
-                if not stage==StageConstant.CLOSED_WON:
-                    projects=Project.objects.select_related('lead').filter(lead__id=lead.id).count()
-                    if projects>0:
-                        return Response({'Error': f"Cannot mark the Lead as {stage.name.capitalize()} as it contains Projects"},
-                                        status=status.HTTP_400_BAD_REQUEST)
                 
                 if stage==StageConstant.OPPORTUNITY:
                     if amount:
@@ -252,8 +239,7 @@ class LeadHandler(APIView):
                         if closing_date:
                             return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
                                             status=status.HTTP_400_BAD_REQUEST)
-                        if lead.closing_date:
-                            payload['closing_date'] = None
+                        payload['closing_date'] = None
                         
                         if not amount:
                             if not lead.amount:
@@ -294,10 +280,6 @@ class LeadHandler(APIView):
                         if closing_date_temp < lead.created_at:
                             return Response({'Error': "Closing date can be before the date of Lead creation"},
                                             status=status.HTTP_400_BAD_REQUEST)
-                        projects_before_new_closing_date=Project.objects.select_related('lead').filter(Q(lead__id=lead.id) & Q(start_date__lt=closing_date)).count()
-                        if projects_before_new_closing_date>0:
-                            return Response({'Error': "Lead contains Projects with start date before the closing date of Lead"},
-                                            status=status.HTTP_400_BAD_REQUEST)
                     except:
                         return Response({'Error': "Enter Valid Closing Date"},
                                         status=status.HTTP_400_BAD_REQUEST)
@@ -321,28 +303,9 @@ class LeadHandler(APIView):
                 return Response({'Error': 'Invalid Confidence Level Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-        payload['updated_at']=date.today().isoformat()
         lead_serializer = LeadSerializer(lead, data=payload, partial=True)
         if lead_serializer.is_valid():
             lead = lead_serializer.save()
-            if lead.stage == StageConstant.CONTACTED.name or lead.stage == StageConstant.NEGOTIATION.name:
-                try:
-                    proposal=Proposal.objects.select_related('lead').get(lead__id=lead.id)
-                    proposal.amount=lead.amount
-                    proposal.date=lead.updated_at
-                except Proposal.DoesNotExist:
-                    proposal=Proposal.objects.create(lead=lead,amount=lead.amount,date=lead.updated_at)
-                finally:
-                    proposal.save()
-            
-            elif lead.stage==StageConstant.CLOSED_WON.name or lead.stage==StageConstant.CLOSED_LOST.name or lead.stage==StageConstant.OPPORTUNITY.name:
-                #Delete Proposal for that lead if exists
-                try:
-                    proposal=Proposal.objects.select_related('lead').get(lead__id=lead.id)
-                    proposal.delete()
-                except Proposal.DoesNotExist:
-                    pass
-                    
             lead_json = lead_serializer.data
             return Response({'data': lead_json},
                             status=status.HTTP_200_OK)

@@ -7,10 +7,7 @@ from .models import Contact, Address, Lead
 def auth_contact(func):
     @wraps(func)
     def wrapper(self, request, user_dict, *args, **kwargs):
-        if request.method == 'GET':
-            contact_id = request.query_params.get('contact', None)
-        else:
-            contact_id = request.data.get('contact', None)
+        contact_id = request.data.get('contact', None)
 
         if not contact_id:
             return Response({'Error': 'No Contact ID provided'},
