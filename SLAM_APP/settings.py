@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     "Pipeline",
     "Projects",
     "Accounting",
-    "Profile"
+    "Profile",
+    "Calender"
     
 ]
 
