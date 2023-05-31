@@ -23,7 +23,6 @@ class EventHandler(APIView):
     def post(self,request,user_dict,contact):
         payload=request.data
         _status=payload.get('status', None)
-        date=payload.get('date')
         
         if _status:
             try:
@@ -32,17 +31,6 @@ class EventHandler(APIView):
             except:
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
-        
-        if date:
-            try:
-                date=datetime.strptime(date, '%Y-%m-%d').date()
-                if date<contact.created_at:
-                    return Response({'Error': "Event creation date cannot be before Contact Creation date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-            
-            except:
-                return Response({'Error': "Enter Valid Closing Date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
         
         event_serializer=EventSerializer(data=payload)
         if event_serializer.is_valid():
