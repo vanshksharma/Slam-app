@@ -6,11 +6,10 @@ from .serializers import ProjectSerializer, TaskSerializer
 from Auth.decorators import auth_user
 from .decorators import auth_project, auth_task
 from datetime import date, datetime
-from Pipeline.decorators import auth_lead
 from .constants import PriorityConstant, StatusConstant
-from Pipeline.constants import StageConstant
-from query_counter.decorators import queries_counter
-from django.db.models import Sum, Q
+from Pipeline.models import Lead
+from Pipeline.decorators import auth_contact
+from django.db.models import Q
 
 
 class ProjectHandler(APIView):
@@ -22,21 +21,26 @@ class ProjectHandler(APIView):
                         status=status.HTTP_200_OK)
     
     @auth_user
-    @auth_lead
-    def post(self,request,user_dict,lead):
-        if not (lead.stage==StageConstant.CLOSED_WON.name):
-            return Response({'Error':"Projects can be added only in Closed_Won stage"},
-                            status=status.HTTP_403_FORBIDDEN)
-            
+    @auth_contact
+    def post(self,request,user_dict,contact):
         payload=request.data
         payload['created_at']=date.today().isoformat()
         payload['updated_at']=date.today().isoformat()
-        
         priority=payload.get('priority',None)
-        value=payload.get('value',None)
         start_date=payload.get('start_date',None)
         due_date=payload.get('due_date',None)
         _status=payload.get('status',None)
+        lead=payload.get('lead', None)
+        
+        if lead:
+            try:
+                lead=Lead.objects.select_related('contact').get(id=lead)
+                if lead.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Lead does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Lead.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Lead ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         if priority:
             try:
@@ -58,32 +62,12 @@ class ProjectHandler(APIView):
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
                 due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if start_date_temp<lead.closing_date:
-                        return Response({'Error': "Project Start date cannot be before Lead Closing date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
                 if due_date_temp<start_date_temp:
                         return Response({'Error': "Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
                 
             except:
                 return Response({'Error': "Invalid Start date or Due date provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
-        
-        #Checking if this project value is valid corresponding to the lead
-        if value:
-            try:
-                value=int(value)
-                total_projects_value=Project.objects.select_related('lead').filter(lead__id=lead.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
-                if total_projects_value:
-                    if lead.amount<total_projects_value+value:
-                        return Response({'Error': "Combined Project values exceeding the lead amount"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    if lead.amount<value:
-                        return Response({'Error': "Project value exceeds the lead amount"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-            except:
-                return Response({'Error': "Invalid value provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         project_serializer=ProjectSerializer(data=payload)
@@ -104,10 +88,20 @@ class ProjectHandler(APIView):
             del payload['created_at']
         
         priority=payload.get('priority',None)
-        value=payload.get('value',None)
         start_date=payload.get('start_date',None)
         due_date=payload.get('due_date',None)
         _status=payload.get('status',None)
+        lead=payload.get('lead', None)
+        
+        if lead:
+            try:
+                lead=Lead.objects.select_related('contact').get(id=lead)
+                if lead.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Lead does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Lead.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Lead ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         if priority:
             try:
@@ -133,9 +127,6 @@ class ProjectHandler(APIView):
         if start_date and not due_date:
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                if start_date_temp<project.lead.closing_date:
-                        return Response({'Error': "Project start date cannot be before Lead closing date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
                 if start_date_temp>project.due_date:
                     return Response({'Error': "Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
@@ -166,9 +157,6 @@ class ProjectHandler(APIView):
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
                 due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if start_date_temp<project.lead.closing_date:
-                        return Response({'Error': "Project Start date cannot be before Lead Closing date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
                 if due_date_temp<start_date_temp:
                         return Response({'Error': "Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
@@ -178,23 +166,6 @@ class ProjectHandler(APIView):
                                     status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': "Invalid Start date or Due date provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
-        
-        #Checking if this project value is valid corresponding to the lead
-        if value:
-            try:
-                value=int(value)
-                total_projects_value=Project.objects.select_related('lead').filter(lead__id=project.lead.id).exclude(id=project.id).aggregate(tot_value=Sum('value')).get('tot_value',0)
-                if total_projects_value:
-                    if project.lead.amount<total_projects_value+value:
-                        return Response({'Error': "Combined Project values exceeding the lead amount"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    if project.lead.amount<value:
-                        return Response({'Error': "Project value exceeds the lead amount"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-            except:
-                return Response({'Error': "Invalid value provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         payload['updated_at']=date.today().isoformat()
