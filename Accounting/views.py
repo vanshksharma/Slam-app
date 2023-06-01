@@ -4,30 +4,143 @@ from rest_framework import status
 from .models import Proposal, Payment, Invoice
 from .serializers import ProposalSerializer, PaymentSerializer, InvoiceSerializer
 from Auth.decorators import auth_user
-from Pipeline.decorators import auth_lead
-from .decorators import auth_payment
-from Projects.decorators import auth_project
-from datetime import date, datetime
-from Pipeline.constants import StageConstant
-from query_counter.decorators import queries_counter
+from Pipeline.decorators import auth_contact
+from .decorators import auth_payment, auth_proposal, auth_invoice
+from Projects.models import Project
+from Pipeline.models import Lead
 
 
 class ProposalHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        proposals=Proposal.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
+        proposals=Proposal.objects.select_related('contact').filter(contact__user__id=user_dict['id'])
         proposal_data=ProposalSerializer(proposals, many=True).data
         return Response({'data': proposal_data},
                         status=status.HTTP_200_OK)
-
+    
+    @auth_user
+    @auth_contact
+    def post(self,request,user_dict,contact):
+        payload=request.data
+        lead=payload.get('lead', None)
+        if lead:
+            try:
+                lead=Lead.objects.select_related('contact').get(id=lead)
+                if lead.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Lead does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Lead.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Lead ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        proposal_serializer=ProposalSerializer(data=payload)
+        if proposal_serializer.is_valid():
+            proposal=proposal_serializer.save()
+            proposal_json=proposal_serializer.data
+            return Response({'data': proposal_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(proposal_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_proposal
+    def put(self,request,user_dict,proposal):
+        payload=request.data
+        lead=payload.get('lead', None)
+        if lead:
+            try:
+                lead=Lead.objects.select_related('contact').get(id=lead)
+                if lead.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Lead does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Lead.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Lead ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        proposal_serializer=ProposalSerializer(proposal,data=payload,partial=True)
+        if proposal_serializer.is_valid():
+            proposal=proposal_serializer.save()
+            proposal_json=proposal_serializer.data
+            return Response({'data': proposal_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(proposal_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_proposal
+    def delete(self,request,user_dict,proposal):
+        proposal.delete()
+        return Response({'Message': 'Proposal Deleted Successfully'},
+                        status=status.HTTP_200_OK)
+        
 
 class InvoiceHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        invoices=Invoice.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
+        invoices=Invoice.objects.select_related('contact').filter(contact__user__id=user_dict['id'])
         invoice_data=InvoiceSerializer(invoices, many=True).data
         return Response({'data': invoice_data},
                         status=status.HTTP_200_OK)
+    
+    @auth_user
+    @auth_contact
+    def post(self,request,user_dict,contact):
+        payload=request.data
+        project=payload.get('project', None)
+        if project:
+            try:
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Project does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Project.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Project ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        invoice_serializer=InvoiceSerializer(data=payload)
+        if invoice_serializer.is_valid():
+            invoice=invoice_serializer.save()
+            invoice_json=invoice_serializer.data
+            return Response({'data': invoice_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(invoice_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+    
+    @auth_user
+    @auth_invoice
+    def put(self,request,user_dict,invoice):
+        payload=request.data
+        project=payload.get('project', None)
+        if project:
+            try:
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Project does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Project.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Project ID"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        invoice_serializer=InvoiceSerializer(invoice,data=payload,partial=True)
+        if invoice_serializer.is_valid():
+            invoice=invoice_serializer.save()
+            invoice_json=invoice_serializer.data
+            return Response({'data': invoice_json},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(invoice_serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    @auth_user
+    @auth_invoice
+    def delete(self,request,user_dict,invoice):
+        invoice.delete()
+        return Response({'Message': 'Invoice Deleted Successfully'},
+                        status=status.HTTP_200_OK)
+
 
 class PaymentHandler(APIView):
     @auth_user
@@ -38,32 +151,20 @@ class PaymentHandler(APIView):
                         status=status.HTTP_200_OK)
     
     @auth_user
-    @auth_project
-    def post(self,request,user_dict,project):
+    @auth_contact
+    def post(self,request,user_dict,contact):
         payload=request.data
-        amt_received=payload.get('amount_received',None)
-        _date=payload.get("date",None)
-        if amt_received:
+        project=payload.get('project', None)
+        if project:
             try:
-                amt_received=int(amt_received)
-                if amt_received<=0:
-                    return Response({'Error': "Invalid amount provided"},
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Project does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Project.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
-            except:
-                return Response({'Error': "Invalid amount provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
-        
-        if _date:
-            try:
-                _date=datetime.strptime(_date, "%Y-%m-%d").date()
-                if _date<project.lead.closing_date:
-                    return Response({'Error': "Payment date cannot be before Lead closing date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-            
-            except:
-                return Response({'Error': "Enter Valid Date"},
-                                status=status.HTTP_400_BAD_REQUEST)
-        
+
         payment_serializer=PaymentSerializer(data=payload)
         if payment_serializer.is_valid():
             payment=payment_serializer.save()
@@ -78,27 +179,15 @@ class PaymentHandler(APIView):
     @auth_payment
     def put(self,request,user_dict,payment):
         payload=request.data
-        new_amt_received=payload.get('amount_received', None)
-        _date=payload.get("date",None)
-        if new_amt_received:
+        project=payload.get('project', None)
+        if project:
             try:
-                new_amt_received=int(new_amt_received)
-                if new_amt_received<=0:
-                    return Response({'Error': "Invalid amount provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
-            except:
-                return Response({'Error': "Invalid amount provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
-        
-        if _date:
-            try:
-                _date=datetime.strptime(_date, "%Y-%m-%d").date()
-                if _date<payment.project.lead.closing_date:
-                    return Response({'Error': "Payment date cannot be before Lead closing date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-            
-            except:
-                return Response({'Error': "Enter Valid Date"},
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id != user_dict['id']:
+                    return Response({'Error': "The Project does not belong to the user"},
+                                    status=status.HTTP_403_FORBIDDEN)
+            except Project.DoesNotExist:
+                return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         payment_serializer=PaymentSerializer(payment,data=payload,partial=True)
