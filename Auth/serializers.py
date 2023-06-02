@@ -7,3 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model=LoginUser
         fields='__all__'
+
+
+class InputSerializer(serializers.Serializer):
+    code = serializers.CharField(required=False)
+    error = serializers.CharField(required=False)
