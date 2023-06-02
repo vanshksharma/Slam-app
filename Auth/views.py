@@ -50,7 +50,8 @@ class Signup(APIView):
         
         payload=request.data
         password=payload.get('password', None)
-        if not password:
+        username=payload.get('username', None)
+        if not (password and username):
             return Response({'Error': "Invalid form data"},
                             status=status.HTTP_400_BAD_REQUEST)
         
