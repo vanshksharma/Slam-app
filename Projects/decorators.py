@@ -14,7 +14,7 @@ def auth_project(func):
 
         try:
             project = Project.objects.select_related('lead').get(id=project_id)
-        except Project.DoesNotExist:
+        except (Project.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Project ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -36,7 +36,7 @@ def auth_task(func):
 
         try:
             task = Task.objects.select_related('project').get(id=task_id)
-        except Task.DoesNotExist:
+        except (Task.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Project ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 

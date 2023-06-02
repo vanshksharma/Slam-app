@@ -16,7 +16,7 @@ def auth_contact(func):
         try:
             contact = Contact.objects.select_related(
                 'user').get(id=contact_id)
-        except Contact.DoesNotExist:
+        except (Contact.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Contact ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -40,7 +40,7 @@ def auth_address(func):
         try:
             address = Address.objects.select_related(
                 'contact').get(id=address_id)
-        except Address.DoesNotExist:
+        except (Address.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Address ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 

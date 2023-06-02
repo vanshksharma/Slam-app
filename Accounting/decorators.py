@@ -14,7 +14,7 @@ def auth_payment(func):
 
         try:
             payment = Payment.objects.select_related('lead').get(id=payment_id)
-        except Payment.DoesNotExist:
+        except (Payment.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Payment ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -36,7 +36,7 @@ def auth_proposal(func):
 
         try:
             proposal = Proposal.objects.select_related('contact').get(id=proposal_id)
-        except Proposal.DoesNotExist:
+        except (Proposal.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Proposal ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -58,7 +58,7 @@ def auth_invoice(func):
 
         try:
             invoice = Invoice.objects.select_related('contact').get(id=invoice_id)
-        except Invoice.DoesNotExist:
+        except (Invoice.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Invoice ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 

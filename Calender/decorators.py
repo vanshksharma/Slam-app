@@ -16,7 +16,7 @@ def auth_event(func):
         try:
             event = Event.objects.select_related(
                 'contact').get(id=event_id)
-        except Event.DoesNotExist:
+        except (Event.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Event ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
