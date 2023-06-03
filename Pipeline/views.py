@@ -7,6 +7,8 @@ from Auth.decorators import auth_user
 from datetime import date, datetime
 from .decorators import auth_contact, auth_address, auth_lead
 from .constants import StageConstant
+from Pipeline.constants import TypeConstant
+from django.db.models import Q
 
 
 class ContactHandler(APIView):
@@ -21,9 +23,25 @@ class ContactHandler(APIView):
     @auth_user
     def post(self, request, user_dict):
         payload = request.data
+        contact_type=payload.get('contact_type',None)
         payload['user'] = user_dict['id']
+        email=payload.get('email',None)
         payload['created_at'] = date.today().isoformat()
         payload['updated_at'] = date.today().isoformat()
+        if contact_type:
+            try:
+                contact_type=TypeConstant[contact_type.upper()]
+                payload['contact_type']=contact_type.name
+            except:
+                return Response({'Error': 'Invalid Contact Type Provided'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            
+        if email:
+            contacts_with_same_email_for_the_user=Contact.objects.select_related('user').filter(Q(email=email) & Q(user__id=user_dict['id'])).count()
+            if contacts_with_same_email_for_the_user>0:
+                return Response({'Error': 'Contact with this email already exists'},
+                                status=status.HTTP_400_BAD_REQUEST)
+                    
         contact_serializer = ContactSerializer(data=payload)
         if contact_serializer.is_valid():
             contact = contact_serializer.save()
@@ -41,6 +59,20 @@ class ContactHandler(APIView):
         if 'created_at' in payload:
             del payload['created_at']
         payload['updated_at'] = date.today().isoformat()
+        email=payload.get('email',None)
+        contact_type=payload.get('contact_type',None)
+        if contact_type:
+            try:
+                contact_type=TypeConstant[contact_type.upper()]
+                payload['contact_type']=contact_type.name
+            except:
+                return Response({'Error': 'Invalid Contact Type Provided'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        if email:
+            contacts_with_same_email_for_the_user=Contact.objects.select_related('user').filter(Q(email=email) & Q(user__id=user_dict['id'])).count()
+            if contacts_with_same_email_for_the_user>0:
+                return Response({'Error': 'Contact with this email already exists'},
+                                status=status.HTTP_400_BAD_REQUEST)
         contact_serializer = ContactSerializer(
             contact, data=payload, partial=True)
         if contact_serializer.is_valid():

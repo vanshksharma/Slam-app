@@ -45,7 +45,7 @@ def auth_address(func):
                             status=status.HTTP_400_BAD_REQUEST)
 
         if address.contact.user.id != user_dict['id']:
-            return Response({'Error': "The Contact does not belong to the user"},
+            return Response({'Error': "The Address does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 
         return func(self, request, user_dict, address, *args, **kwargs)

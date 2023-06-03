@@ -11,7 +11,7 @@ class Contact(models.Model):
                                   choices=[(choice.name, choice.value) for choice in TypeConstant],
                                   default=TypeConstant.INDIVIDUAL.name)
     name=models.CharField(max_length=20,null=False)
-    email=models.EmailField(unique=True,null=False)
+    email=models.EmailField(null=False)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
     
