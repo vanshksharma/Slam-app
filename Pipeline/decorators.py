@@ -63,7 +63,7 @@ def auth_lead(func):
 
         try:
             lead = Lead.objects.select_related('contact').get(id=lead_id)
-        except Lead.DoesNotExist:
+        except (Lead.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Lead ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 

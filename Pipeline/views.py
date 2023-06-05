@@ -174,12 +174,12 @@ class LeadHandler(APIView):
                         return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
                                         status=status.HTTP_400_BAD_REQUEST)
                     if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
                                             status=status.HTTP_400_BAD_REQUEST)
                 else:
                     if stage == StageConstant.CONTACTED or stage == StageConstant.NEGOTIATION:
                         if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
                                             status=status.HTTP_400_BAD_REQUEST)
                         if not amount:
                             return Response({'Error': "Amount cannot be null for Contacted or Negotiation leads"},
@@ -261,7 +261,7 @@ class LeadHandler(APIView):
                         return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
                                         status=status.HTTP_400_BAD_REQUEST)
                     if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date."},
+                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
                                             status=status.HTTP_400_BAD_REQUEST)
                     payload['amount']=None
                     payload['closing_date']=None
