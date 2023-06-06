@@ -15,7 +15,7 @@ from django.db.models import Q
 class ProjectHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        projects=Project.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
+        projects=Project.objects.select_related('lead').filter(contact__user__id=user_dict['id'])
         project_data=ProjectSerializer(projects, many=True).data
         return Response({'data': project_data},
                         status=status.HTTP_200_OK)
@@ -38,7 +38,7 @@ class ProjectHandler(APIView):
                 if lead.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Lead does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Lead.DoesNotExist:
+            except (Lead.DoesNotExist, ValueError):
                 return Response({'Error': "Please Enter Valid Lead ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -99,7 +99,7 @@ class ProjectHandler(APIView):
                 if lead.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Lead does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Lead.DoesNotExist:
+            except (Lead.DoesNotExist, ValueError):
                 return Response({'Error': "Please Enter Valid Lead ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -128,7 +128,7 @@ class ProjectHandler(APIView):
             try:
                 start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
                 if start_date_temp>project.due_date:
-                    return Response({'Error': "Due date cannot be before Start date"},
+                    return Response({'Error': "Project Start date cannot be after Due Date"},
                                         status=status.HTTP_400_BAD_REQUEST)
                 tasks_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(start_date__lt=start_date_temp)).count()
                 if tasks_before_new_start_date>0:
@@ -190,7 +190,7 @@ class ProjectHandler(APIView):
 class TaskHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        tasks=Task.objects.select_related('project').filter(project__lead__contact__user__id=user_dict['id'])
+        tasks=Task.objects.select_related('project').filter(project__contact__user__id=user_dict['id'])
         task_data=TaskSerializer(tasks, many=True).data
         return Response({'data': task_data},
                         status=status.HTTP_200_OK)
