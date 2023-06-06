@@ -37,7 +37,7 @@ def auth_task(func):
         try:
             task = Task.objects.select_related('project').get(id=task_id)
         except (Task.DoesNotExist, ValueError):
-            return Response({'Error': "Please Enter Valid Project ID"},
+            return Response({'Error': "Please Enter Valid Task ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if task.project.contact.user.id != user_dict['id']:
