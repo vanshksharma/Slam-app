@@ -1,9 +1,10 @@
 from rest_framework import serializers
 from .models import UserProfile
+from timezone_field.rest_framework import TimeZoneSerializerField
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    timezone=serializers.CharField()
+    timezone=TimeZoneSerializerField()
     
     class Meta:
         model=UserProfile
