@@ -6,6 +6,8 @@ class EventTest(APITestCase):
         data = {
             'username': 'test',
             'password': 'test',
+            'first_name': 'test',
+            'last_name': 'test',
             'email': 'asfdas@sfas.com'
         }
         self.client.post('/auth/signup', data, format='json')
@@ -24,6 +26,8 @@ class EventTest(APITestCase):
         data = {
             'username': 'test12',
             'password': 'test',
+            'first_name': 'test',
+            'last_name': 'test',
             'email': 'as@sfas.com'
         }
         client.post('/auth/signup', data, format='json')

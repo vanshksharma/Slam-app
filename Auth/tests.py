@@ -28,11 +28,33 @@ class SignupTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['Error'], 'Invalid form data')
     
+    def test_signup_without_first_name(self):
+        data = {
+            'username': 'test',
+            'password': 'test',
+            'email': 'saf78a@ds.com'
+        }
+        response = self.client.post('/auth/signup', data, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['Error'], 'Invalid form data')
+    
+    def test_signup_without_last_name(self):
+        data = {
+            'username': 'test',
+            'password': 'test',
+            'email': 'dfh65@fhj.com'
+        }
+        response = self.client.post('/auth/signup', data, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['Error'], 'Invalid form data')
+    
     def test_signup_with_valid_data(self):
         data = {
             'username': 'test',
             'password': 'test',
-            'email': 'dfadf@dfad.com'
+            'email': 'dfadf@dfad.com',
+            'first_name': 'test',
+            'last_name': 'test'
         }
         response = self.client.post('/auth/signup', data, format='json')
         self.assertEqual(response.status_code, 200)
@@ -46,6 +68,8 @@ class LoginTest(APITestCase):
         data = {
             'username': 'test',
             'password': 'test',
+            'first_name': 'test',
+            'last_name': 'test',
             'email': 'dfadf@dfad.com'
         }
         self.client.post('/auth/signup', data, format='json')
@@ -110,14 +134,11 @@ class LogoutTest(APITestCase):
         data = {
             'username': 'test',
             'password': 'test',
+            'first_name': 'test',
+            'last_name': 'test',
             'email': 'dfadf@dfad.com'
         }
         self.client.post('/auth/signup', data, format='json')
-        data = {
-            'username': 'test',
-            'password': 'test'
-        }
-        self.client.post('/auth/login', data, format='json')
     
     def test_logout_without_login(self):
         client=APIClient()
