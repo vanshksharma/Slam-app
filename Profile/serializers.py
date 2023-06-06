@@ -3,6 +3,7 @@ from .models import UserProfile
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    timezone=serializers.CharField()
     
     class Meta:
         model=UserProfile
