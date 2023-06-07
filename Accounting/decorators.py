@@ -13,7 +13,7 @@ def auth_payment(func):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            payment = Payment.objects.select_related('lead').get(id=payment_id)
+            payment = Payment.objects.select_related('contact').get(id=payment_id)
         except (Payment.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Payment ID"},
                             status=status.HTTP_400_BAD_REQUEST)
