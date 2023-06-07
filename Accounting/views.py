@@ -145,7 +145,7 @@ class InvoiceHandler(APIView):
 class PaymentHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        payments=Payment.objects.select_related('lead').filter(lead__contact__user__id=user_dict['id'])
+        payments=Payment.objects.select_related('contact').filter(contact__user__id=user_dict['id'])
         payment_data=PaymentSerializer(payments, many=True).data
         return Response({'data': payment_data},
                         status=status.HTTP_200_OK)
