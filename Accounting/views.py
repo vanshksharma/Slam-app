@@ -29,7 +29,7 @@ class ProposalHandler(APIView):
                 if lead.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Lead does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Lead.DoesNotExist:
+            except (Lead.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Lead ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -54,7 +54,7 @@ class ProposalHandler(APIView):
                 if lead.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Lead does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Lead.DoesNotExist:
+            except (Lead.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Lead ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -95,7 +95,7 @@ class InvoiceHandler(APIView):
                 if project.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Project does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Project.DoesNotExist:
+            except (Project.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -120,7 +120,7 @@ class InvoiceHandler(APIView):
                 if project.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Project does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Project.DoesNotExist:
+            except (Project.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -161,7 +161,7 @@ class PaymentHandler(APIView):
                 if project.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Project does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Project.DoesNotExist:
+            except (Project.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
@@ -186,7 +186,7 @@ class PaymentHandler(APIView):
                 if project.contact.user.id != user_dict['id']:
                     return Response({'Error': "The Project does not belong to the user"},
                                     status=status.HTTP_403_FORBIDDEN)
-            except Project.DoesNotExist:
+            except (Project.DoesNotExist,ValueError):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
