@@ -421,7 +421,7 @@ class ProjectTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['Error'], 'Invalid Start date or Due date provided')
     
-    def check_null_after_lead_deletion(self):
+    def test_check_null_after_lead_deletion(self):
         data={
             'lead':self.lead_id
         }
@@ -430,7 +430,7 @@ class ProjectTest(APITestCase):
         
         response = self.client.get('/projects/project')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['data']['lead'], None)
+        self.assertEqual(response.json()['data'][0]['lead'], None)
     
     # ------------------------------------------- DELETE Test Started -----------------------------------------------------
     def test_delete_project_with_invalid_project_id(self):
