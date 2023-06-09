@@ -162,3 +162,11 @@ FRONTEND_DASHBOARD_URL=env('FRONTEND_DASHBOARD_URL')
 
 #CORS Configurations
 CORS_ORIGIN_ALLOW_ALL = True
+
+
+#REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    )
+}
