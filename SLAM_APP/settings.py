@@ -30,9 +30,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -158,3 +158,7 @@ GOOGLE_CLIENT_SECRET=env('GOOGLE_CLIENT_SECRET')
 BACKEND_DOMAIN=env('BACKEND_DOMAIN')
 FRONTEND_LOGIN_URL=env('FRONTEND_LOGIN_URL')
 FRONTEND_DASHBOARD_URL=env('FRONTEND_DASHBOARD_URL')
+
+
+#CORS Configurations
+CORS_ORIGIN_ALLOW_ALL = True
