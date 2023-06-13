@@ -10,7 +10,7 @@ Body:
 - password: required
 
 Response:
-![Login Image](./images/Login.png)
+![Login Image]([./images/Login.png](https://www.google.com/url?sa=i&url=https%3A%2F%2Fgithub.com%2Forgs%2Fcommunity%2Fdiscussions%2F53013&psig=AOvVaw3sqDeszDXe6hs3I6oV_oM2&ust=1686722689982000&source=images&cd=vfe&ved=0CBEQjRxqFwoTCLjwyOfJv_8CFQAAAAAdAAAAABAE))
 A cookie will be set with the name "JWT_TOKEN" and the value will be the JWT token for the user.
 
 <hr>
