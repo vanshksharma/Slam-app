@@ -128,6 +128,18 @@ class LoginTest(APITestCase):
         self.assertEqual(response.data['Message'], 'Login Successful')
         self.assertTrue(response.cookies.get('JWT_TOKEN', None).value is not None)
     
+    def test_add_contact_valid_token_no_user(self):
+        client=APIClient()
+        client.cookies['JWT_TOKEN'] = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Nn0.zBdutOvncGUTYYWZkc9pit5ps90LO1kz1WFtLloSNxI'
+        data = {
+            'contact_type':'INDIVIDUAL',
+            'name':'Test Contact',
+            'email':'bssda@DSF.com'
+        }
+        response=client.post('/pipeline/contact',data, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['Error'], 'User Does not Exist')
+    
 
 class LogoutTest(APITestCase):
     def setUp(self) -> None:
