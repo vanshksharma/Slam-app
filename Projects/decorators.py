@@ -13,7 +13,7 @@ def auth_project(func):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            project = Project.objects.select_related('lead').get(id=project_id)
+            project = Project.objects.select_related('contact').get(id=project_id)
         except (Project.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Project ID"},
                             status=status.HTTP_400_BAD_REQUEST)
