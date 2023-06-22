@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     "Projects",
     "Accounting",
     "Profile",
-    "Calender"
+    "Calender",
+    "Assets"
     
 ]
 
@@ -158,3 +159,10 @@ GOOGLE_CLIENT_SECRET=env('GOOGLE_CLIENT_SECRET')
 BACKEND_DOMAIN=env('BACKEND_DOMAIN')
 FRONTEND_LOGIN_URL=env('FRONTEND_LOGIN_URL')
 FRONTEND_DASHBOARD_URL=env('FRONTEND_DASHBOARD_URL')
+
+
+# AWS S3 configurations
+S3_KEY=env('S3_KEY')
+S3_SECRET=env('S3_SECRET')
+S3_BUCKET=env('S3_BUCKET')
+S3_LOCATION=f"https://{S3_BUCKET}.s3.amazonaws.com/"
