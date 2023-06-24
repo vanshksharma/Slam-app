@@ -41,7 +41,7 @@ class Login(APIView):
             token_age=timedelta(days=30).total_seconds()
             res=Response({'Message': "Login Successful"},
                          status=status.HTTP_200_OK)
-            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None')
             return res
 
 
@@ -70,7 +70,7 @@ class Signup(APIView):
             token_age=timedelta(days=30).total_seconds()
             res=Response({'Message': "Signup Successful"},
                          status=status.HTTP_200_OK)
-            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None')
             
             #Setting up profile for user which he/she can edit afterwards
             user_profile=UserProfile.objects.create(user=user)
@@ -123,7 +123,7 @@ class GoogleLogin(APIView):
             token=jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)
             token_age=timedelta(days=30).total_seconds()
             res=redirect(settings.FRONTEND_DASHBOARD_URL)
-            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None')
         
         except LoginUser.DoesNotExist:
             user_serializer=UserSerializer(data=profile_data)
@@ -135,7 +135,7 @@ class GoogleLogin(APIView):
                 token=jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)
                 token_age=timedelta(days=30).total_seconds()
                 res=redirect(settings.FRONTEND_DASHBOARD_URL)
-                res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
+                res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None')
                 
                 #Setting up profile for user which he/she can edit afterwards
                 user_profile=UserProfile.objects.create(user=user)
