@@ -41,7 +41,7 @@ class Login(APIView):
             token_age=timedelta(days=30).total_seconds()
             res=Response({'Message': "Login Successful"},
                          status=status.HTTP_200_OK)
-            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None')
+            res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age,samesite='None',secure=True)
             return res
 
 
