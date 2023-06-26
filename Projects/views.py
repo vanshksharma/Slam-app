@@ -7,7 +7,7 @@ from Auth.decorators import auth_user
 from .decorators import auth_project, auth_task
 from datetime import date, datetime
 from .constants import PriorityConstant, StatusConstant
-from Pipeline.models import Lead
+from Pipeline.models import Contact, Lead
 from Pipeline.decorators import auth_contact
 from django.db.models import Q
 
@@ -15,7 +15,7 @@ from django.db.models import Q
 class ProjectHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        projects=Project.objects.select_related('lead').filter(contact__user__id=user_dict['id'])
+        projects=Project.objects.select_related('contact').filter(contact__user__id=user_dict['id'])
         project_data=ProjectSerializer(projects, many=True).data
         return Response({'data': project_data},
                         status=status.HTTP_200_OK)
@@ -190,22 +190,20 @@ class ProjectHandler(APIView):
 class TaskHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        tasks=Task.objects.select_related('project').filter(project__contact__user__id=user_dict['id'])
+        tasks=Task.objects.select_related('user').filter(user__id=user_dict['id'])
         task_data=TaskSerializer(tasks, many=True).data
         return Response({'data': task_data},
                         status=status.HTTP_200_OK)
     
     @auth_user
-    @auth_project
-    def post(self,request,user_dict,project):
-        if project.status==StatusConstant.COMPLETE.name:
-            return Response({'Error': "Cannot add task to an already completed project"},
-                            status=status.HTTP_400_BAD_REQUEST)
+    def post(self,request,user_dict):
         payload=request.data
         _status=payload.get('status', None)
         priority=payload.get('priority', None)
-        start_date=payload.get('start_date', None)
-        due_date=payload.get('due_date', None)
+        date=payload.get('date', None)
+        contact=payload.get('contact', None)
+        project=payload.get('project', None)
+        payload['user']=user_dict['id']
         
         if _status:
             try:
@@ -223,23 +221,46 @@ class TaskHandler(APIView):
                 return Response({'Error': 'Invalid Priority Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date and due_date:
+        if project:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if start_date_temp<project.start_date:
-                    return Response({'Error': "Task Start date cannot be before Project Start date"},
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id!=user_dict['id']:
+                    return Response({'Error': 'Project does not belong to the user'},
+                                    status=status.HTTP_403_FORBIDDEN)
+                if project.status==StatusConstant.COMPLETE.name:
+                    return Response({'Error': "Cannot add task to an already completed project"},
                                     status=status.HTTP_400_BAD_REQUEST)
-                if due_date_temp>project.due_date:
-                    return Response({'Error': "Task Due date cannot be after Project Due date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                if due_date_temp<start_date_temp:
-                    return Response({'Error': "Due date cannot be before Start date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                if contact:
+                    contact=None
+                    del payload['contact']
             except:
-                return Response({'Error': "Invalid Start date or Due date provided"},
+                return Response({'Error': 'Invalid Project Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        if contact:
+            try:
+                contact=Contact.objects.select_related('user').get(id=contact)
+                if contact.user.id!=user_dict['id']:
+                    return Response({'Error': 'Contact does not belong to the user'},
+                                        status=status.HTTP_403_FORBIDDEN)
+            except:
+                return Response({'Error': 'Invalid Contact Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
             
+        
+        if date:
+            try:
+                date=datetime.strptime(date, "%Y-%m-%d").date()
+                if project:
+                    if date<project.start_date:
+                        return Response({'Error': "Task date cannot be before Project Start date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+                    if date>project.due_date:
+                        return Response({'Error': "Task date cannot be after Project Due date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': 'Invalid Date Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
             
         task_serializer=TaskSerializer(data=payload)
         if task_serializer.is_valid():
@@ -258,8 +279,10 @@ class TaskHandler(APIView):
         payload=request.data
         _status=payload.get('status', None)
         priority=payload.get('priority', None)
-        start_date=payload.get('start_date', None)
-        due_date=payload.get('due_date', None)
+        date=payload.get('date', None)
+        contact=payload.get('contact', None)
+        project=payload.get('project', None)
+        payload['user']=user_dict['id']
         
         if _status:
             try:
@@ -282,50 +305,70 @@ class TaskHandler(APIView):
                 return Response({'Error': 'Invalid Priority Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        
-        if start_date and not due_date:
+        if project:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                if start_date_temp<task.project.start_date:
-                    return Response({'Error': "Task Start date cannot be before Project Start date"},
+                project=Project.objects.select_related('contact').get(id=project)
+                if project.contact.user.id!=user_dict['id']:
+                    return Response({'Error': 'Project does not belong to the user'},
+                                    status=status.HTTP_403_FORBIDDEN)
+                if project.status==StatusConstant.COMPLETE.name:
+                    return Response({'Error': "Cannot add task to an already completed project"},
                                     status=status.HTTP_400_BAD_REQUEST)
-                if start_date_temp>task.due_date:
-                    return Response({'Error': "Task Start date cannot be after Due date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                if task.contact:
+                    payload['contact']=None
+                if contact:
+                    contact=None
             except:
-                return Response({'Error': "Invalid Start date provided"},
+                return Response({'Error': 'Invalid Project Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        if contact:
+            try:
+                contact=Contact.objects.select_related('user').get(id=contact)
+                if contact.user.id!=user_dict['id']:
+                    return Response({'Error': 'Contact does not belong to the user'},
+                                        status=status.HTTP_403_FORBIDDEN)
+                if task.project:
+                    payload['project']=None
+            except:
+                return Response({'Error': 'Invalid Contact Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if due_date and not start_date:
-            try:
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if due_date_temp>task.project.due_date:
-                    return Response({'Error': "Task Due date cannot be after Project Due date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                if due_date_temp<task.start_date:
-                    return Response({'Error': "Task Due date cannot be before Start date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-            
-            except:
-                return Response({'Error': "Invalid Due date provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date and due_date:
+        if date and project:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if start_date_temp<task.project.start_date:
-                    return Response({'Error': "Task Start date cannot be before Project Start date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                if due_date_temp>task.project.due_date:
-                    return Response({'Error': "Task Due date cannot be after Project Due date"},
+                date=datetime.strptime(date, "%Y-%m-%d").date()
+                if date<project.start_date:
+                    return Response({'Error': "Task date cannot be before Project Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                if due_date_temp<start_date_temp:
-                        return Response({'Error': "Due date cannot be before Start date"},
+                if date>project.due_date:
+                    return Response({'Error': "Task date cannot be after Project Due date"},
                                         status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid Start date or Due date provided"},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({'Error': 'Invalid Date Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        elif date and not project:
+            try:
+                date=datetime.strptime(date, "%Y-%m-%d").date()
+                if task.project:
+                    if date<task.project.start_date:
+                        return Response({'Error': "Task date cannot be before Project Start date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+                    if date>task.project.due_date:
+                        return Response({'Error': "Task date cannot be after Project Due date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': 'Invalid Date Provided'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+        
+        elif project and not date:
+            if task.date<project.start_date:
+                return Response({'Error': "Task date cannot be before Project Start date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+            if task.date>project.due_date:
+                return Response({'Error': "Task date cannot be after Project Due date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
         
         task_serializer=TaskSerializer(task,data=payload,partial=True)
         if task_serializer.is_valid():

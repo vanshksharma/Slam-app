@@ -23,6 +23,8 @@ class EventHandler(APIView):
     def post(self,request,user_dict,contact):
         payload=request.data
         _status=payload.get('status', None)
+        start_date=payload.get('start_date', None)
+        due_date=payload.get('due_date', None)
         
         if _status:
             try:
@@ -31,6 +33,17 @@ class EventHandler(APIView):
             except:
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
+        
+        if start_date and due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if due_date_temp<start_date_temp:
+                    return Response({'Error': "Due date cannot be before Start date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         event_serializer=EventSerializer(data=payload)
         if event_serializer.is_valid():
@@ -48,7 +61,8 @@ class EventHandler(APIView):
     def put(self,request,user_dict,event):
         payload=request.data
         _status=payload.get('status', None)
-        date=payload.get('date')
+        start_date=payload.get('start_date', None)
+        due_date=payload.get('due_date', None)
         
         if _status:
             try:
@@ -58,16 +72,37 @@ class EventHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        if date:
+        if start_date and not due_date:
             try:
-                date=datetime.strptime(date, '%Y-%m-%d').date()
-                if date<event.contact.created_at:
-                    return Response({'Error': "Event creation date cannot be before Contact Creation date"},
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                if start_date_temp>event.due_date:
+                    return Response({'Error': "Task Start date cannot be after Due date"},
                                     status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if due_date and not start_date:
+            try:
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if due_date_temp<event.start_date:
+                    return Response({'Error': "Task Due date cannot be before Start date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
             
             except:
-                return Response({'Error': "Enter Valid Closing Date"},
+                return Response({'Error': "Invalid Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if start_date and due_date:
+            try:
+                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
+                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
+                if due_date_temp<start_date_temp:
+                        return Response({'Error': "Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Start date or Due date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
         
         event_serializer=EventSerializer(event, data=payload, partial=True)
         if event_serializer.is_valid():
