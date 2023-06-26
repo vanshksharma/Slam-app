@@ -23,8 +23,8 @@ class EventHandler(APIView):
     def post(self,request,user_dict,contact):
         payload=request.data
         _status=payload.get('status', None)
-        start_date=payload.get('start_date', None)
-        due_date=payload.get('due_date', None)
+        start=payload.get('start', None)
+        due=payload.get('due', None)
         
         if _status:
             try:
@@ -34,15 +34,15 @@ class EventHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date and due_date:
+        if start and due:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if due_date_temp<start_date_temp:
-                    return Response({'Error': "Due date cannot be before Start date"},
+                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M")
+                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M")
+                if due_temp<start_temp:
+                    return Response({'Error': "Event Due cannot be before Start"},
                                     status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid Start date or Due date provided"},
+                return Response({'Error': "Invalid Start or Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         event_serializer=EventSerializer(data=payload)
@@ -61,8 +61,8 @@ class EventHandler(APIView):
     def put(self,request,user_dict,event):
         payload=request.data
         _status=payload.get('status', None)
-        start_date=payload.get('start_date', None)
-        due_date=payload.get('due_date', None)
+        start=payload.get('start', None)
+        due=payload.get('due', None)
         
         if _status:
             try:
@@ -72,36 +72,36 @@ class EventHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date and not due_date:
+        if start and not due:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                if start_date_temp>event.due_date:
-                    return Response({'Error': "Task Start date cannot be after Due date"},
+                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M")
+                if start_temp>event.due:
+                    return Response({'Error': "Event Start cannot be after Due"},
                                     status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid Start date provided"},
+                return Response({'Error': "Invalid Start provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if due_date and not start_date:
+        if due and not start:
             try:
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if due_date_temp<event.start_date:
-                    return Response({'Error': "Task Due date cannot be before Start date"},
+                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M")
+                if due_temp<event.start:
+                    return Response({'Error': "Event Due cannot be before Start"},
                                         status=status.HTTP_400_BAD_REQUEST)
             
             except:
-                return Response({'Error': "Invalid Due date provided"},
+                return Response({'Error': "Invalid Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        if start_date and due_date:
+        if start and due:
             try:
-                start_date_temp=datetime.strptime(start_date, "%Y-%m-%d").date()
-                due_date_temp=datetime.strptime(due_date, "%Y-%m-%d").date()
-                if due_date_temp<start_date_temp:
-                        return Response({'Error': "Due date cannot be before Start date"},
+                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M")
+                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M")
+                if due_temp<start_temp:
+                        return Response({'Error': "Due cannot be before Start"},
                                         status=status.HTTP_400_BAD_REQUEST)
             except:
-                return Response({'Error': "Invalid Start date or Due date provided"},
+                return Response({'Error': "Invalid Start or Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
         event_serializer=EventSerializer(event, data=payload, partial=True)
