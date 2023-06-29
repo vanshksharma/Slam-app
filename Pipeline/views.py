@@ -1,11 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Contact, Address, Lead
-from .serializers import ContactSerializer, AddressSerializer, LeadSerializer
+from .models import Contact, Lead
+from .serializers import ContactSerializer, LeadSerializer
 from Auth.decorators import auth_user
 from datetime import date, datetime
-from .decorators import auth_contact, auth_address, auth_lead
+from .decorators import auth_contact, auth_lead
 from .constants import StageConstant
 from Pipeline.constants import TypeConstant
 from django.db.models import Q
@@ -56,8 +56,7 @@ class ContactHandler(APIView):
     @auth_contact
     def put(self, request, user_dict, contact):
         payload = request.data
-        if 'created_at' in payload:
-            del payload['created_at']
+        payload.pop('created_at', None)
         payload['updated_at'] = date.today().isoformat()
         email=payload.get('email',None)
         contact_type=payload.get('contact_type',None)
@@ -89,57 +88,6 @@ class ContactHandler(APIView):
     def delete(self, request, user_dict, contact):
         contact.delete()
         return Response({'Message': 'Contact Deleted Successfully'},
-                        status=status.HTTP_200_OK)
-
-
-class AddressHandler(APIView):
-    @auth_user
-    def get(self, request, user_dict):
-        address = Address.objects.select_related(
-            'contact').filter(contact__user__id=user_dict['id'])
-        address_data = AddressSerializer(address, many=True).data
-        return Response({'data': address_data},
-                        status=status.HTTP_200_OK)
-
-    @auth_user
-    @auth_contact
-    def post(self, request, user_dict, contact):
-        payload = request.data
-        payload['created_at'] = date.today().isoformat()
-        payload['updated_at'] = date.today().isoformat()
-        adddress_serializer = AddressSerializer(data=payload)
-        if adddress_serializer.is_valid():
-            address = adddress_serializer.save()
-            address_json = adddress_serializer.data
-            return Response({'data': address_json},
-                            status=status.HTTP_200_OK)
-        else:
-            return Response(adddress_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-    @auth_user
-    @auth_address
-    def put(self, request, user_dict, address):
-        payload = request.data
-        if 'created_at' in payload:
-            del payload['created_at']
-        payload['updated_at'] = date.today().isoformat()
-        address_serializer = AddressSerializer(
-            address, data=payload, partial=True)
-        if address_serializer.is_valid():
-            updated_address = address_serializer.save()
-            updated_address_json = address_serializer.data
-            return Response({'data': updated_address_json},
-                            status=status.HTTP_200_OK)
-        else:
-            return Response(address_serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-    @auth_user
-    @auth_address
-    def delete(self, request, user_dict, address):
-        address.delete()
-        return Response({'Message': 'Address Deleted Successfully'},
                         status=status.HTTP_200_OK)
 
 
@@ -248,8 +196,7 @@ class LeadHandler(APIView):
         confidence = payload.get('confidence', None)
         amount=payload.get('amount',None)
         payload['updated_at']=date.today().isoformat()
-        if 'created_at' in payload:
-            del payload['created_at']
+        payload.pop('created_at',None)
 
         if stage:
             try:
