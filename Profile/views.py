@@ -2,11 +2,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from Auth.decorators import auth_user
-from .models import UserProfile
+from .models import UserProfile, Integrations
 from .serializers import ProfileSerializer
 from Auth.models import LoginUser
 from Auth.serializers import UserSerializer
 import bcrypt
+from rest_framework import serializers
+from Auth.utils import google_get_tokens
+from django.shortcuts import redirect
+from urllib.parse import urlencode
+from django.conf import settings
 # No Post and Delete API'S because profile gets automatically created at the time of signup and user cannot delete a profile, he/she can only delete the account.
 
 
@@ -86,4 +91,40 @@ class AccountHandler(APIView):
                         status=status.HTTP_200_OK)
         res.delete_cookie('JWT_TOKEN')
         return res
-    
+
+
+class CalenderIntegrationHandler(APIView):
+    class InputSerializer(serializers.Serializer):
+        code = serializers.CharField(required=False)
+        error = serializers.CharField(required=False)
+
+    # @auth_user
+    def get(self, request, *args, **kwargs):
+        integration=Integrations.objects.select_related('user').get(user__id=14)
+        if integration.calender_integration is not None:
+            return Response({'Error':"Calender integration already exists"},
+                            status=status.HTTP_412_PRECONDITION_FAILED)
+            
+        input_serializer = self.InputSerializer(data=request.GET)
+        input_serializer.is_valid(raise_exception=True)
+        validated_data = input_serializer.validated_data
+
+        code = validated_data.get('code')
+        error = validated_data.get('error')
+
+        login_url = settings.FRONTEND_LOGIN_URL
+
+        if error or not code:
+            params = urlencode({'error': error})
+            return redirect(f'{login_url}?{params}')
+
+        domain = settings.BACKEND_DOMAIN
+        api_uri = 'profile/integration/calender'
+        redirect_uri = f'{domain}{api_uri}'
+
+        _,refresh_token=google_get_tokens(code=code, redirect_uri=redirect_uri)
+        integration.calender_integration=refresh_token
+        integration.save()
+        
+        res=redirect(login_url)
+        return res

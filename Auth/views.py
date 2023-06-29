@@ -11,7 +11,8 @@ from .decorators import auth_user
 from Profile.models import UserProfile
 from django.shortcuts import redirect
 from urllib.parse import urlencode
-from .utils import google_get_access_token, google_get_user_info
+from .utils import google_get_tokens, google_get_user_info
+from Profile.models import Integrations
 
 
 class Login(APIView):
@@ -75,6 +76,9 @@ class Signup(APIView):
             #Setting up profile for user which he/she can edit afterwards
             user_profile=UserProfile.objects.create(user=user)
             user_profile.save()
+            #Setting up Integrations
+            integration=Integrations.objects.create(user=user)
+            integration.save()
             
             return res
         
@@ -96,7 +100,6 @@ class GoogleLogin(APIView):
         login_url = settings.FRONTEND_LOGIN_URL
 
         if error or not code:
-            print("hello")
             params = urlencode({'error': error})
             return redirect(f'{login_url}?{params}')
 
@@ -104,8 +107,7 @@ class GoogleLogin(APIView):
         api_uri = 'auth/login/google/'
         redirect_uri = f'{domain}{api_uri}'
 
-        access_token = google_get_access_token(code=code, redirect_uri=redirect_uri)
-
+        access_token, _ = google_get_tokens(code=code, redirect_uri=redirect_uri)
         user_data = google_get_user_info(access_token=access_token)
 
         profile_data = {
@@ -140,6 +142,9 @@ class GoogleLogin(APIView):
                 #Setting up profile for user which he/she can edit afterwards
                 user_profile=UserProfile.objects.create(user=user)
                 user_profile.save()
+                #Setting up Integrations
+                integration=Integrations.objects.create(user=user)
+                integration.save()
             
             else:
                 params = urlencode({'error': "Signup failed"})

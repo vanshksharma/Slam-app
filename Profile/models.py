@@ -19,3 +19,8 @@ class UserProfile(models.Model):
     
     def __str__(self) -> str:
         return f"Name - {self.legal_name} | Email - {self.user.email}"
+
+class Integrations(models.Model):
+    user=models.OneToOneField(LoginUser,primary_key=True,on_delete=models.CASCADE,db_column="user")
+    calender_integration=models.CharField(max_length=300,null=True) # Google Calender Refresh Token
+    
