@@ -8,6 +8,14 @@ from .models import Event
 from .serializers import EventSerializer
 from datetime import datetime
 from .decorators import auth_event
+from Profile.models import Integrations
+from google.oauth2.credentials import Credentials
+from django.conf import settings
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from Profile.models import UserProfile
+from Pipeline.models import Contact
+from .utils import create_calender_event,update_calender_event,delete_calender_event
 
 
 class EventHandler(APIView):
@@ -25,6 +33,12 @@ class EventHandler(APIView):
         _status=payload.get('status', None)
         start=payload.get('start', None)
         due=payload.get('due', None)
+        meeting=request.query_params.get("meeting",None)
+        contact=payload.get('contact',None)
+        if not contact:
+            return Response({'Error':'No Contact Provided'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        contact=Contact.objects.get(id=contact)
         
         if _status:
             try:
@@ -36,8 +50,8 @@ class EventHandler(APIView):
         
         if start and due:
             try:
-                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M")
-                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M")
+                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M").isoformat()
+                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M").isoformat()
                 if due_temp<start_temp:
                     return Response({'Error': "Event Due cannot be before Start"},
                                     status=status.HTTP_400_BAD_REQUEST)
@@ -45,15 +59,70 @@ class EventHandler(APIView):
                 return Response({'Error': "Invalid Start or Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        event_serializer=EventSerializer(data=payload)
-        if event_serializer.is_valid():
-            event=event_serializer.save()
-            event_json=event_serializer.data
-            return Response({'data': event_json},
-                            status=status.HTTP_200_OK)
+        payload_serializer=EventSerializer(data=payload)
+        if payload_serializer.is_valid():
+            # Creating Google Calendar Event
+            integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+            calender_success=False
+            try:
+                creds=Credentials(None,
+                            refresh_token=integration.calender_integration,
+                            token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
+                            client_id=settings.GOOGLE_CLIENT_ID,
+                            client_secret=settings.GOOGLE_CLIENT_SECRET)
+                creds.refresh(Request())
+                if creds.valid:
+                    calender_service=build('calendar', 'v3', credentials=creds)
+                    profile=UserProfile.objects.select_related('user').get(user__id=user_dict['id'])
+                    event= create_calender_event(
+                        service=calender_service,
+                        summary=payload.get('title',''),
+                        description=payload.get('description',''),
+                        meeting=meeting,
+                        start=start_temp,
+                        due=due_temp,
+                        timezone=profile.timezone,
+                        user_id=user_dict['id'],
+                        contact=contact
+                    )
+                    if event!=-1:
+                        calender_success=True
+                        payload['calender_event_id']=event.get('id',None)
+                        payload['calender_event_link']=event.get('htmlLink',None)
+                        if meeting=='true':
+                            conference_data = event.get('conferenceData', {})
+                            conference_link = conference_data.get('entryPoints', [{}])[0].get('uri',None)
+                            payload['link']=conference_link
+                    else:
+                        if meeting=='true':
+                            return Response({'Error':"Cannot Create Meeting. Please Try Again Later"},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                else:
+                    if meeting=='true':
+                        return Response({'Error':"Calender Integration Not done. Please Integrate Calender to Create Meetings"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+                    
+            except:
+                integration.calender_integration=None
+                integration.save()
+                if meeting=='true':
+                    return Response({'Error':"Calender Integration Not done. Please Integrate Calender to Create Meetings"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+            
+            finally:
+                event_serializer=EventSerializer(data=payload)
+                if event_serializer.is_valid():
+                    event=event_serializer.save()
+                    event_json=event_serializer.data
+                    res_payload={'data': event_json}
+                    res_payload.update({
+                        'calender_success':calender_success
+                    })
+                    return Response(res_payload,
+                                    status=status.HTTP_200_OK)
 
         else:
-            return Response(event_serializer.errors,
+            return Response(payload_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
         
     @auth_user
@@ -63,6 +132,9 @@ class EventHandler(APIView):
         _status=payload.get('status', None)
         start=payload.get('start', None)
         due=payload.get('due', None)
+        payload.pop('calender_event_id',None)
+        payload.pop('calender_event_link',None)
+        payload.pop('link',None)
         
         if _status:
             try:
@@ -104,21 +176,94 @@ class EventHandler(APIView):
                 return Response({'Error': "Invalid Start or Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
-        event_serializer=EventSerializer(event, data=payload, partial=True)
-        if event_serializer.is_valid():
-            event=event_serializer.save()
-            event_json=event_serializer.data
-            return Response({'data': event_json},
-                            status=status.HTTP_200_OK)
-
+        payload_serializer=EventSerializer(event, data=payload, partial=True)
+        if payload_serializer.is_valid():
+            # Updating Google Calendar Event
+            try:
+                if event.calender_event_id:
+                    integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+                    update_success=False
+                    creds=Credentials(None,
+                                refresh_token=integration.calender_integration,
+                                token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
+                                client_id=settings.GOOGLE_CLIENT_ID,
+                                client_secret=settings.GOOGLE_CLIENT_SECRET)
+                    creds.refresh(Request())
+                    if creds.valid:
+                        calender_service=build('calendar', 'v3', credentials=creds)
+                        new_event= update_calender_event(
+                            service=calender_service,
+                            event_id=event.calender_event_id,
+                            summary=payload.get('title',''),
+                            description=payload.get('description',''),
+                            start=start,
+                            due=due,
+                        )
+                        if new_event!=-1:
+                            update_success=True
+                        else:
+                            return Response({'Error':"Cannot Update Meeting. Please Try Again Later"},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    else:
+                        return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event-1"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                integration.calender_integration=None
+                integration.save()
+                return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event-2"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+            
+            finally:
+                event_serializer=EventSerializer(event,data=payload,partial=True)
+                if event_serializer.is_valid():
+                    event=event_serializer.save()
+                    event_json=event_serializer.data
+                    res_payload={'data': event_json}
+                    res_payload.update({
+                        'update_success':update_success
+                    })
+                    return Response(res_payload,
+                                    status=status.HTTP_200_OK)
         else:
-            return Response(event_serializer.errors,
+            return Response(payload_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+                
+                
+                
     
     @auth_user
     @auth_event
     def delete(self,request,user_dict,event):
-        event.delete()
-        return Response({'Message': 'Event Deleted Successfully'},
-                        status=status.HTTP_200_OK)
-        
+        try:
+            # Deleting Google Calendar Event
+            if event.calender_event_id:
+                integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+                delete_success=False
+                creds=Credentials(None,
+                            refresh_token=integration.calender_integration,
+                            token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
+                            client_id=settings.GOOGLE_CLIENT_ID,
+                            client_secret=settings.GOOGLE_CLIENT_SECRET)
+                creds.refresh(Request())
+                if creds.valid:
+                    calender_service=build('calendar', 'v3', credentials=creds)
+                    res=delete_calender_event(service=calender_service,event_id=event.calender_event_id)
+                    if res!=-1:
+                        delete_success=True
+                    else:
+                        return Response({'Error':"Cannot Delete Event. Please Try Again Later"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                else:
+                    return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to delete Event"},
+                                status=status.HTTP_401_UNAUTHORIZED)
+        except:
+            integration.calender_integration=None
+            integration.save()
+            return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to delete Event"},
+                                status=status.HTTP_401_UNAUTHORIZED)
+        finally:
+            event.delete()
+            return Response({'Message': 'Event Deleted Successfully',
+                            'delete_success':delete_success},
+                            status=status.HTTP_200_OK)
+            

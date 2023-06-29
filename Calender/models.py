@@ -13,5 +13,7 @@ class Event(models.Model):
     due=models.DateTimeField()
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
-                              default=StatusConstant.INCOMPLETE.name)
+                              default=StatusConstant.NOT_STARTED.name)
+    calender_event_id=models.CharField(max_length=50,null=True)
+    calender_event_link=models.URLField(null=True)
     link=models.URLField(null=True)
