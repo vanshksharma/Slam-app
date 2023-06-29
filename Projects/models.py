@@ -7,7 +7,7 @@ from Auth.models import LoginUser
 class Project(models.Model):
     id=models.AutoField(primary_key=True)
     name=models.CharField(max_length=20,null=False)
-    value=models.IntegerField(null=False)
+    value=models.IntegerField(null=True)
     contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     priority=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in PriorityConstant],
@@ -16,7 +16,7 @@ class Project(models.Model):
     due_date=models.DateField()
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
-                              default=StatusConstant.INCOMPLETE.name)
+                              default=StatusConstant.NOT_STARTED.name)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
     lead=models.ForeignKey(Lead, on_delete=models.SET_NULL, db_column="lead", null=True)
@@ -36,7 +36,7 @@ class Task(models.Model):
                               default=PriorityConstant.LOW.name)
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
-                              default=StatusConstant.INCOMPLETE.name)
+                              default=StatusConstant.NOT_STARTED.name)
     date=models.DateField()
     
     def __str__(self) -> str:
