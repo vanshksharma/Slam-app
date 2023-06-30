@@ -98,9 +98,9 @@ class CalenderIntegrationHandler(APIView):
         code = serializers.CharField(required=False)
         error = serializers.CharField(required=False)
 
-    # @auth_user
-    def get(self, request, *args, **kwargs):
-        integration=Integrations.objects.select_related('user').get(user__id=14)
+    @auth_user
+    def get(self, request, user_dict, *args, **kwargs):
+        integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
         if integration.calender_integration is not None:
             return Response({'Error':"Calender integration already exists"},
                             status=status.HTTP_412_PRECONDITION_FAILED)
