@@ -28,6 +28,7 @@ class Contact(models.Model):
 
 class Lead(models.Model):
     id=models.AutoField(primary_key=True)
+    name=models.CharField(max_length=20)
     contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     amount=models.IntegerField(null=True)
     stage=models.CharField(max_length=15,
