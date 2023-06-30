@@ -12,6 +12,7 @@ from Auth.utils import google_get_tokens
 from django.shortcuts import redirect
 from urllib.parse import urlencode
 from django.conf import settings
+from .utils import get_zoom_tokens
 # No Post and Delete API'S because profile gets automatically created at the time of signup and user cannot delete a profile, he/she can only delete the account.
 
 
@@ -112,11 +113,11 @@ class CalenderIntegrationHandler(APIView):
         code = validated_data.get('code')
         error = validated_data.get('error')
 
-        login_url = settings.FRONTEND_LOGIN_URL
+        dashboard_url = settings.FRONTEND_DASHBOARD_URL
 
         if error or not code:
             params = urlencode({'error': error})
-            return redirect(f'{login_url}?{params}')
+            return redirect(f'{dashboard_url}?{params}')
 
         domain = settings.BACKEND_DOMAIN
         api_uri = 'profile/integration/calender'
@@ -126,5 +127,43 @@ class CalenderIntegrationHandler(APIView):
         integration.calender_integration=refresh_token
         integration.save()
         
-        res=redirect(login_url)
+        res=redirect(dashboard_url)
         return res
+
+
+class ZoomIntegrationHandler(APIView):
+    class InputSerializer(serializers.Serializer):
+        code = serializers.CharField(required=False)
+        error = serializers.CharField(required=False)
+    
+    @auth_user
+    def get(self,request,user_dict,*args,**kwargs):
+        integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+        if integration.zoom_integration is not None:
+            return Response({'Error':"Zoom integration already exists"},
+                            status=status.HTTP_412_PRECONDITION_FAILED)
+            
+        input_serializer = self.InputSerializer(data=request.GET)
+        input_serializer.is_valid(raise_exception=True)
+        validated_data = input_serializer.validated_data
+
+        code = validated_data.get('code')
+        error = validated_data.get('error')
+
+        dashboard_url = settings.FRONTEND_DASHBOARD_URL
+
+        if error or not code:
+            params = urlencode({'error': 'true'})
+            return redirect(f'{dashboard_url}?{params}')
+        
+        domain = settings.BACKEND_DOMAIN
+        api_uri = 'profile/integration/zoom'
+        redirect_uri = f'{domain}{api_uri}'
+        
+        _,refresh_token=get_zoom_tokens(grant_type='authorization_code',token=code,redirect_uri=redirect_uri)
+        integration.zoom_integration=refresh_token
+        integration.save()
+        
+        res=redirect(dashboard_url)
+        return res
+    

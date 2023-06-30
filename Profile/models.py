@@ -23,4 +23,5 @@ class UserProfile(models.Model):
 class Integrations(models.Model):
     user=models.OneToOneField(LoginUser,primary_key=True,on_delete=models.CASCADE,db_column="user")
     calender_integration=models.CharField(max_length=300,null=True) # Google Calender Refresh Token
+    zoom_integration=models.CharField(max_length=600,null=True) # Zoom Refresh Token
     
