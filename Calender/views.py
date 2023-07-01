@@ -15,7 +15,9 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from Profile.models import UserProfile
 from Pipeline.models import Contact
-from .utils import create_calender_event,update_calender_event,delete_calender_event
+from .utils import create_calender_event,update_calender_event,delete_calender_event,make_zoom_meeting,get_zoom_access_token
+from django.core.exceptions import PermissionDenied, ValidationError
+import time
 
 
 class EventHandler(APIView):
@@ -50,12 +52,14 @@ class EventHandler(APIView):
         
         if start and due:
             try:
-                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M").isoformat()
-                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M").isoformat()
+                start_temp=datetime.strptime(start, "%Y-%m-%d %H:%M")
+                due_temp=datetime.strptime(due, "%Y-%m-%d %H:%M")
                 if due_temp<start_temp:
                     return Response({'Error': "Event Due cannot be before Start"},
                                     status=status.HTTP_400_BAD_REQUEST)
-            except:
+                diff=due_temp-start_temp
+                duration=diff.total_seconds()//60
+            except Exception as e:
                 return Response({'Error': "Invalid Start or Due provided"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
@@ -63,7 +67,9 @@ class EventHandler(APIView):
         if payload_serializer.is_valid():
             # Creating Google Calendar Event
             integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+            profile=UserProfile.objects.select_related('user').get(user__id=user_dict['id'])
             calender_success=False
+            zoom_success=False
             try:
                 creds=Credentials(None,
                             refresh_token=integration.calender_integration,
@@ -73,14 +79,13 @@ class EventHandler(APIView):
                 creds.refresh(Request())
                 if creds.valid:
                     calender_service=build('calendar', 'v3', credentials=creds)
-                    profile=UserProfile.objects.select_related('user').get(user__id=user_dict['id'])
                     event= create_calender_event(
                         service=calender_service,
                         summary=payload.get('title',''),
                         description=payload.get('description',''),
                         meeting=meeting,
-                        start=start_temp,
-                        due=due_temp,
+                        start=start_temp.isoformat(),
+                        due=due_temp.isoformat(),
                         timezone=profile.timezone,
                         user_id=user_dict['id'],
                         contact=contact
@@ -89,37 +94,46 @@ class EventHandler(APIView):
                         calender_success=True
                         payload['calender_event_id']=event.get('id',None)
                         payload['calender_event_link']=event.get('htmlLink',None)
-                        if meeting=='true':
-                            conference_data = event.get('conferenceData', {})
-                            conference_link = conference_data.get('entryPoints', [{}])[0].get('uri',None)
-                            payload['link']=conference_link
-                    else:
-                        if meeting=='true':
-                            return Response({'Error':"Cannot Create Meeting. Please Try Again Later"},
-                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                else:
-                    if meeting=='true':
-                        return Response({'Error':"Calender Integration Not done. Please Integrate Calender to Create Meetings"},
-                                    status=status.HTTP_401_UNAUTHORIZED)
                     
             except:
                 integration.calender_integration=None
-                integration.save()
-                if meeting=='true':
-                    return Response({'Error':"Calender Integration Not done. Please Integrate Calender to Create Meetings"},
-                                    status=status.HTTP_401_UNAUTHORIZED)
             
-            finally:
-                event_serializer=EventSerializer(data=payload)
-                if event_serializer.is_valid():
-                    event=event_serializer.save()
-                    event_json=event_serializer.data
-                    res_payload={'data': event_json}
-                    res_payload.update({
-                        'calender_success':calender_success
-                    })
-                    return Response(res_payload,
-                                    status=status.HTTP_200_OK)
+            
+            # Zoom Meeting
+            if meeting=="true":
+                try:
+                    access_token,new_refresh_token=get_zoom_access_token(integration.zoom_integration)
+                    integration.zoom_integration=new_refresh_token
+                    integration.save()
+                    join_url=make_zoom_meeting(access_token=access_token,
+                                          agenda=payload.get('description',''),
+                                          topic=payload.get('title',''),
+                                          start_time=start_temp.isoformat(),
+                                          timezone=profile.timezone,
+                                          invitee=contact.email,
+                                          duration=duration)
+                    payload['link']=join_url
+                    zoom_success=True                    
+        
+                except PermissionDenied:
+                    return Response({'Error':"Zoom Integration Not done. Please Integrate Zoom to create meetings"},
+                                    status=status.HTTP_412_PRECONDITION_FAILED)
+                except ValidationError:
+                    return Response({'Error':"Cannot Create Meeting. Please Try Again Later"},
+                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            
+            event_serializer=EventSerializer(data=payload)
+            if event_serializer.is_valid():
+                event=event_serializer.save()
+                event_json=event_serializer.data
+                res_payload={'data': event_json}
+                res_payload.update({
+                    'calender_success':calender_success,
+                    'zoom_success':zoom_success
+                })
+                return Response(res_payload,
+                                status=status.HTTP_200_OK)
 
         else:
             return Response(payload_serializer.errors,
