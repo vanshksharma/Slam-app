@@ -21,17 +21,9 @@ def create_calender_event(service,summary,description,meeting,start,due,timezone
              'displayName': contact.name},
         ],
     }
-    
-    if meeting=='true':
-        event.update({
-            'conferenceData': {
-                'createRequest': {
-                    'requestId': user_id
-                }
-            }
-        })
+
     try:
-        new_event = service.events().insert(calendarId='primary', body=event, conferenceDataVersion=1,sendUpdates='all').execute()
+        new_event = service.events().insert(calendarId='primary', body=event,sendUpdates='all').execute()
     except:
         new_event=-1
     finally:
@@ -45,7 +37,7 @@ def update_calender_event(service,event_id,summary,description,start,due):
         event['start']['dateTime'] = datetime.strptime(start, "%Y-%m-%d %H:%M") if start else event['start']['dateTime']
         event['end']['dateTime'] = datetime.strptime(due, "%Y-%m-%d %H:%M") if due else event['end']['dateTime']
         
-        updated_event = service.events().update(calendarId='primary', eventId=event_id, body=event,conferenceDataVersion=1,sendUpdates='all').execute()
+        updated_event = service.events().update(calendarId='primary', eventId=event_id, body=event,sendUpdates='all').execute()
     
     except:
         updated_event=-1
