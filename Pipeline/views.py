@@ -109,60 +109,25 @@ class LeadHandler(APIView):
         stage = payload.get('stage', None)
         closing_date = payload.get('closing_date', None)
         confidence = payload.get('confidence', None)
-        amount=payload.get('amount',None)
 
         # Stage Check
         if stage:
             try:
                 stage = StageConstant[stage.upper()]
                 payload['stage'] = stage.name
-                
-                if stage==StageConstant.OPPORTUNITY:
-                    if amount:
-                        return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-                    if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
-                                            status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    if stage == StageConstant.CONTACTED or stage == StageConstant.NEGOTIATION:
-                        if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
-                                            status=status.HTTP_400_BAD_REQUEST)
-                        if not amount:
-                            return Response({'Error': "Amount cannot be null for Contacted or Negotiation leads"},
-                                            status=status.HTTP_400_BAD_REQUEST)
-                        
+                if stage==StageConstant.CLOSED_WON:
+                    if not closing_date:
+                        payload['closing_date'] = date.today().isoformat()
                     else:
-                        if stage==StageConstant.CLOSED_WON:
-                            if not amount:
-                                return Response({'Error': "Amount cannot be null for Closed Won leads"},
-                                                status=status.HTTP_400_BAD_REQUEST)
-                            if not closing_date:
-                                payload['closing_date'] = date.today().isoformat()
-                            else:
-                                try:
-                                    closing_date_temp = datetime.strptime(closing_date, "%Y-%m-%d").date()
-                                    payload['closing_date']=closing_date
-                                    if closing_date_temp < payload['created_at']:
-                                        return Response({'Error': "Closing date cannot be before the date of Lead creation"},
-                                                        status=status.HTTP_400_BAD_REQUEST)
-                                except:
-                                    return Response({'Error': "Enter Valid Closing Date"},
-                                                    status=status.HTTP_400_BAD_REQUEST)
+                        try:
+                            closing_date_temp = datetime.strptime(closing_date, "%Y-%m-%d").date()
+                        except:
+                            return Response({'Error': "Enter Valid Closing Date"},
+                                            status=status.HTTP_400_BAD_REQUEST)
             except:
                 return Response({'Error': 'Invalid Stage Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
-        
-        if closing_date:
-            if not stage:
-                return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
 
-        if amount:
-            if not stage:
-                return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
-                                    status=status.HTTP_400_BAD_REQUEST)
         # Confidence check
         if confidence:
             try:
@@ -194,7 +159,6 @@ class LeadHandler(APIView):
         stage = payload.get('stage', None)
         closing_date = payload.get('closing_date', None)
         confidence = payload.get('confidence', None)
-        amount=payload.get('amount',None)
         payload['updated_at']=date.today().isoformat()
         payload.pop('created_at',None)
 
@@ -203,71 +167,20 @@ class LeadHandler(APIView):
                 stage = StageConstant[stage.upper()]
                 payload['stage'] = stage.name
                 
-                if stage==StageConstant.OPPORTUNITY:
-                    if amount:
-                        return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
-                                        status=status.HTTP_400_BAD_REQUEST)
+                if stage==StageConstant.CLOSED_WON:
                     if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
+                        try:
+                            closing_date_temp = datetime.strptime(closing_date, "%Y-%m-%d").date()
+                        except:
+                            return Response({'Error': "Enter Valid Closing Date"},
                                             status=status.HTTP_400_BAD_REQUEST)
-                    payload['amount']=None
-                    payload['closing_date']=None
-
-                else:
-                    if stage == StageConstant.CONTACTED or stage == StageConstant.NEGOTIATION:
-                        if closing_date:
-                            return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
-                                            status=status.HTTP_400_BAD_REQUEST)
-                        payload['closing_date'] = None
-                        
-                        if not amount:
-                            if not lead.amount:
-                                return Response({'Error': "Amount cannot be null for Contacted or Negotiation leads"},
-                                                status=status.HTTP_400_BAD_REQUEST)
-
                     else:
-                        if stage==StageConstant.CLOSED_WON:
-                            if not amount:
-                                if not lead.amount:
-                                    return Response({'Error': "Amount cannot be null for Closed Won leads"},
-                                                    status=status.HTTP_400_BAD_REQUEST)
-                            if closing_date:
-                                try:
-                                    closing_date_temp = datetime.strptime(
-                                        closing_date, "%Y-%m-%d").date()
-                                    if closing_date_temp < lead.created_at:
-                                        return Response({'Error': "Closing date can be before the date of Lead creation"},
-                                                        status=status.HTTP_400_BAD_REQUEST)
-                                except:
-                                    return Response({'Error': "Enter Valid Closing Date"},
-                                                    status=status.HTTP_400_BAD_REQUEST)
-                            else:
-                                payload['closing_date'] = date.today().isoformat()
+                        if not lead.closing_date:
+                            payload['closing_date'] = date.today().isoformat()
                         
             except:
                 return Response({'Error': 'Invalid Stage Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
-        
-        if closing_date:
-            if not stage:
-                if not (lead.stage==StageConstant.CLOSED_WON.name or lead.stage==StageConstant.CLOSED_LOST.name):
-                    return Response({'Error': "Only leads in Closed Won or Closed Lost stage can be provided a closing date"},
-                                    status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    try:
-                        closing_date_temp = datetime.strptime(closing_date, "%Y-%m-%d").date()
-                        if closing_date_temp < lead.created_at:
-                            return Response({'Error': "Closing date can be before the date of Lead creation"},
-                                            status=status.HTTP_400_BAD_REQUEST)
-                    except:
-                        return Response({'Error': "Enter Valid Closing Date"},
-                                        status=status.HTTP_400_BAD_REQUEST)
-        
-        if amount:
-            if not stage:
-                if lead.stage==StageConstant.OPPORTUNITY.name:
-                    return Response({'Error': "Amount cannot be provided for a Lead in Opportunity stage"},
-                                    status=status.HTTP_400_BAD_REQUEST)
 
         # Confidence Check
         if confidence:
