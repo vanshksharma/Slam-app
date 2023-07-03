@@ -68,7 +68,7 @@ class ContactHandler(APIView):
                 return Response({'Error': 'Invalid Contact Type Provided'},
                                 status=status.HTTP_400_BAD_REQUEST)
         if email:
-            contacts_with_same_email_for_the_user=Contact.objects.select_related('user').filter(Q(email=email) & Q(user__id=user_dict['id'])).count()
+            contacts_with_same_email_for_the_user=Contact.objects.select_related('user').filter(Q(email=email) & Q(user__id=user_dict['id']) & ~Q(id=contact.id)).count()
             if contacts_with_same_email_for_the_user>0:
                 return Response({'Error': 'Contact with this email already exists'},
                                 status=status.HTTP_400_BAD_REQUEST)
