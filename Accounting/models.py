@@ -12,7 +12,7 @@ class Proposal(models.Model):
     expiry_date=models.DateField()
     lead=models.ForeignKey(Lead, on_delete=models.SET_NULL, db_column="lead", null=True)
     tax=models.FloatField(null=True)
-    amount=models.FloatField(null=False)
+    amount=models.FloatField(null=False,default=0)
     notes=models.TextField(null=True)
     
     def __str__(self) -> str:
@@ -27,7 +27,7 @@ class Invoice(models.Model):
     expiry_date=models.DateField()
     project=models.ForeignKey(Project,on_delete=models.SET_NULL,db_column="project",null=True) # Incomplete or Complete
     tax=models.IntegerField(null=True)
-    amount=models.IntegerField(null=False)
+    amount=models.IntegerField(null=False,default=0)
     notes=models.TextField(null=True)
     
     def __str__(self) -> str:
@@ -50,7 +50,7 @@ class Item(models.Model):
     details=models.CharField(max_length=100, null=False)
     quantity=models.IntegerField(null=False)
     rate=models.FloatField(null=False)
-    amount=models.FloatField(null=False)
+    amount=models.FloatField(null=False,default=0)
     proposal=models.ForeignKey(Proposal, on_delete=models.CASCADE, db_column="proposal", null=True)
     invoice=models.ForeignKey(Invoice, on_delete=models.CASCADE, db_column="invoice", null=True)
     
