@@ -11,8 +11,8 @@ class Proposal(models.Model):
     creation_date=models.DateField(default=date.today)
     expiry_date=models.DateField()
     lead=models.ForeignKey(Lead, on_delete=models.SET_NULL, db_column="lead", null=True)
-    tax=models.IntegerField(null=True)
-    amount=models.IntegerField(null=False)
+    tax=models.FloatField(null=True)
+    amount=models.FloatField(null=False)
     notes=models.TextField(null=True)
     
     def __str__(self) -> str:
@@ -49,8 +49,8 @@ class Item(models.Model):
     id=models.AutoField(primary_key=True)
     details=models.CharField(max_length=100, null=False)
     quantity=models.IntegerField(null=False)
-    rate=models.IntegerField(null=False)
-    amount=models.IntegerField(null=False)
+    rate=models.FloatField(null=False)
+    amount=models.FloatField(null=False)
     proposal=models.ForeignKey(Proposal, on_delete=models.CASCADE, db_column="proposal", null=True)
     invoice=models.ForeignKey(Invoice, on_delete=models.CASCADE, db_column="invoice", null=True)
     
