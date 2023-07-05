@@ -254,8 +254,10 @@ class InvoiceHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
         invoices=Invoice.objects.select_related('contact').filter(contact__user__id=user_dict['id'])
+        items=Item.objects.select_related('invoice').filter(invoice__contact__user__id=user_dict['id'])
         invoice_data=InvoiceSerializer(invoices, many=True).data
-        return Response({'data': invoice_data},
+        items_data=ItemSerializer(items, many=True).data
+        return Response({'data': {'invoices': invoice_data, 'items': items_data}},
                         status=status.HTTP_200_OK)
     
     @auth_user
@@ -263,6 +265,12 @@ class InvoiceHandler(APIView):
     def post(self,request,user_dict,contact):
         payload=request.data
         project=payload.get('project', None)
+        invoice_number=payload.get('invoice_number', None)
+        creation_date=payload.get('creation_date', None)
+        expiry_date=payload.get('expiry_date', None)
+        tax=payload.get('tax', None)
+        amount=payload.get('amount', None)
+        items=payload.pop('items', None)
         if project:
             try:
                 project=Project.objects.select_related('contact').get(id=project)
@@ -273,12 +281,73 @@ class InvoiceHandler(APIView):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
+        if invoice_number:
+            invoices_with_same_invoice_number=Invoice.objects.select_related('contact').filter(Q(contact__user__id=user_dict['id']) & Q(invoice_number=invoice_number)).count()
+            if invoices_with_same_invoice_number > 0:
+                return Response({'Error': "Invoice Number Already Exists"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if expiry_date:
+            try:
+                expiry_date_temp=datetime.strptime(expiry_date, '%Y-%m-%d').date()
+                if creation_date:
+                    try:
+                        creation_date_temp=datetime.strptime(creation_date, '%Y-%m-%d').date()
+                    except:
+                        return Response({'Error': "Please Enter Valid Creation Date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    creation_date_temp=date.today()
+                
+                if expiry_date_temp < creation_date_temp:
+                    return Response({'Error': "Expiry Date Cannot be before Creation Date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Please Enter Valid Expiry Date"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if tax:
+            try:
+                tax_temp=float(tax)
+                if tax_temp < 0:
+                    return Response({'Error': "Please Enter Valid Tax"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Please Enter Valid Tax"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if amount:
+            try:
+                amount_temp=float(amount)
+                if amount_temp < 0:
+                    return Response({'Error': "Please Enter Valid Amount"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Please Enter Valid Amount"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
         invoice_serializer=InvoiceSerializer(data=payload)
         if invoice_serializer.is_valid():
             invoice=invoice_serializer.save()
             invoice_json=invoice_serializer.data
-            return Response({'data': invoice_json},
-                            status=status.HTTP_200_OK)
+            # Logic for creating items
+            invoice_id=invoice.id
+            items_json=[]
+            if items:
+                for item in items:
+                    item.pop('id',None)
+                    item['invoice']=invoice_id
+                    item_serializer=ItemSerializer(data=item)
+                    if item_serializer.is_valid():
+                        item_serializer.save()
+                        items_json.append(item_serializer.data)
+                    else:
+                        invoice.delete()
+                        return Response(item_serializer.errors,
+                                        status=status.HTTP_400_BAD_REQUEST)
+            return Response({'data': {'invoice': invoice_json, 'items': items_json}},
+                        status=status.HTTP_200_OK)
+            
         else:
             return Response(invoice_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
@@ -288,6 +357,13 @@ class InvoiceHandler(APIView):
     def put(self,request,user_dict,invoice):
         payload=request.data
         project=payload.get('project', None)
+        invoice_number=payload.get('invoice_number', None)
+        creation_date=payload.get('creation_date', None)
+        expiry_date=payload.get('expiry_date', None)
+        tax=payload.get('tax', None)
+        amount=payload.get('amount', None)
+        items=payload.pop('items', None)
+        payload.pop('id',None)
         if project:
             try:
                 project=Project.objects.select_related('contact').get(id=project)
@@ -298,12 +374,104 @@ class InvoiceHandler(APIView):
                 return Response({'Error': "Please Enter Valid Project ID"},
                                 status=status.HTTP_400_BAD_REQUEST)
         
+        if invoice_number:
+            invoices_with_same_invoice_number=Invoice.objects.select_related('contact').filter(Q(contact__user__id=user_dict['id']) & Q(invoice_number=invoice_number) & ~Q(id=invoice.id)).count()
+            if invoices_with_same_invoice_number > 0:
+                return Response({'Error': "Invoice Number Already Exists"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if creation_date and not expiry_date:
+            try:
+                creation_date_temp=datetime.strptime(creation_date, "%Y-%m-%d").date()
+                if creation_date_temp>invoice.expiry_date:
+                    return Response({'Error': "Proposal Creation Date cannot be after Expiry Date"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Creation Date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if expiry_date and not creation_date:
+            try:
+                expiry_date_temp=datetime.strptime(expiry_date, "%Y-%m-%d").date()
+                if expiry_date_temp<invoice.creation_date:
+                    return Response({'Error': "Proposal Expiry Date cannot be before Creation Date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            
+            except:
+                return Response({'Error': "Invalid Expiry Date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if creation_date and expiry_date:
+            try:
+                creation_date_temp=datetime.strptime(creation_date, "%Y-%m-%d").date()
+                expiry_date_temp=datetime.strptime(expiry_date, "%Y-%m-%d").date()
+                if expiry_date_temp<creation_date_temp:
+                        return Response({'Error': "Expiry Date cannot be before Creation Date"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Invalid Creation Date or Expiry Date provided"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if tax:
+            try:
+                tax_temp=float(tax)
+                if tax_temp < 0:
+                    return Response({'Error': "Please Enter Valid Tax"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Please Enter Valid Tax"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        
+        if amount:
+            try:
+                amount_temp=float(amount)
+                if amount_temp < 0:
+                    return Response({'Error': "Please Enter Valid Amount"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({'Error': "Please Enter Valid Amount"},
+                                status=status.HTTP_400_BAD_REQUEST)
+                
+        items_queryset=Item.objects.select_related('invoice').filter(invoice__id=invoice.id)
         invoice_serializer=InvoiceSerializer(invoice,data=payload,partial=True)
         if invoice_serializer.is_valid():
+            # Saving at last because we cannot delete the proposal if the items are not valid
+            # Validating items
+            not_saved_items=[]
+            items_json=[]
+            invoice_id=invoice.id
+            if items:
+                for item in items:
+                    item.pop('id',None)
+                    if item.get('item',None):
+                        try:
+                            item_instance=get_object_or_404(items_queryset,id=item['item'])
+                            item_serializer=ItemSerializer(item_instance,data=item,partial=True)
+                            if item_serializer.is_valid():
+                                not_saved_items.append(item_serializer)
+                            else:
+                                return Response(item_serializer.errors,
+                                                status=status.HTTP_400_BAD_REQUEST)
+                        except Http404:
+                            return Response({'Error': "Invalid Item ID provided"},
+                                            status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        item['invoice']=invoice_id
+                        item_serializer=ItemSerializer(data=item)
+                        if item_serializer.is_valid():
+                            not_saved_items.append(item_serializer)
+                        else:
+                            return Response(item_serializer.errors,
+                                            status=status.HTTP_400_BAD_REQUEST)
+                
+                # Everything is valid, so saving the items
+                _=list(map(lambda x: x.save(), not_saved_items))
+                items_json=list(map(lambda x: x.data, not_saved_items)) # Saved the items, now getting the data using the serializer
+            
             invoice=invoice_serializer.save()
             invoice_json=invoice_serializer.data
-            return Response({'data': invoice_json},
-                            status=status.HTTP_200_OK)
+            return Response({'data': {'invoice': invoice_json, 'items': items_json}},
+                    status=status.HTTP_200_OK)
         else:
             return Response(invoice_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
