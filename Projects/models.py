@@ -19,6 +19,7 @@ class Project(models.Model):
                               default=StatusConstant.NOT_STARTED.name)
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
+    description=models.TextField(null=True)
     lead=models.ForeignKey(Lead, on_delete=models.SET_NULL, db_column="lead", null=True)
     
     def __str__(self) -> str:
