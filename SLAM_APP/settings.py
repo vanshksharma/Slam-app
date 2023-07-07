@@ -143,7 +143,6 @@ STATIC_URL = '/static/'
 
 
 # Jwt configurations
-
 JWT_KEY=env('JWT_KEY')
 JWT_ALGO=env('JWT_ALGO')
 
@@ -173,3 +172,16 @@ ZOOM_CLIENT_ID=env('ZOOM_CLIENT_ID')
 ZOOM_CLIENT_SECRET=env('ZOOM_CLIENT_SECRET')
 ZOOM_ACCESS_TOKEN_OBTAIN_URL=env('ZOOM_ACCESS_TOKEN_OBTAIN_URL')
 ZOOM_MEETING_URL=env('ZOOM_MEETING_URL')
+
+
+# Celery configurations
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+
+
+# Mail configurations
+EMAIL_BACKEND = 'django_ses.SESBackend'
+AWS_ACCESS_KEY_ID=env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY=env('AWS_SECRET_ACCESS_KEY')
+AWS_SES_REGION_NAME = 'ap-south-1'
+AWS_SES_REGION_ENDPOINT = 'email.ap-south-1.amazonaws.com'
