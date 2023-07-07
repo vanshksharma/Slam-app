@@ -18,7 +18,7 @@ from Pipeline.models import Contact
 from .utils import create_calender_event,update_calender_event,delete_calender_event,make_zoom_meeting,get_zoom_access_token
 from django.core.exceptions import PermissionDenied, ValidationError
 import time
-
+from .tasks import send_event_mail
 
 class EventHandler(APIView):
     @auth_user
@@ -132,6 +132,13 @@ class EventHandler(APIView):
                     'calender_success':calender_success,
                     'zoom_success':zoom_success
                 })
+                if zoom_success:
+                    send_event_mail.delay(title=event.title,
+                                        link=event.link,
+                                        starts=event.start,
+                                        end=event.due,
+                                        user_id=user_dict['id'],
+                                        recipient=contact.email)
                 return Response(res_payload,
                                 status=status.HTTP_200_OK)
 
