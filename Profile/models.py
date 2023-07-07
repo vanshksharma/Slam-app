@@ -1,6 +1,5 @@
 from django.db import models
 from Auth.models import LoginUser
-from phonenumber_field.modelfields import PhoneNumberField
 from timezone_field import TimeZoneField
 
 
@@ -15,7 +14,6 @@ class UserProfile(models.Model):
     address=models.TextField(max_length=50,null=True)
     city=models.CharField(max_length=20,null=True)
     pincode=models.IntegerField(null=True)
-    phone_no=PhoneNumberField(unique = True, null=True)
     
     def __str__(self) -> str:
         return f"Name - {self.legal_name} | Email - {self.user.email}"
