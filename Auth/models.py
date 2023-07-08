@@ -9,8 +9,8 @@ class LoginUser(models.Model):
     email=models.EmailField(null=False, unique=True)
     phone_no=PhoneNumberField(unique = True, null=False)
     company=models.CharField(max_length=30,null=True)
-    username=models.CharField(max_length=20, unique=True, null=True)
-    password=models.BinaryField(null=True,editable=True)
+    username=models.CharField(max_length=20, unique=True, null=False)
+    password=models.BinaryField(null=False,editable=True)
     
     def __str__(self) -> str:
         return f"Name - {self.first_name} {self.last_name} | Email - {self.email}"
