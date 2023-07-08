@@ -13,6 +13,8 @@ from django.shortcuts import redirect
 from urllib.parse import urlencode
 from .utils import google_get_tokens, google_get_user_info
 from Profile.models import Integrations
+from django.db.models import Q
+from django.core.exceptions import ValidationError
 
 
 class Login(APIView):
@@ -25,7 +27,7 @@ class Login(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user=LoginUser.objects.get(username=username)
+            user=LoginUser.objects.get(Q(username=username)| Q(email=username))
         except LoginUser.DoesNotExist:
             return Response({'Error': "Invalid Username/Password"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -48,13 +50,14 @@ class Login(APIView):
 
 class Signup(APIView):
     def post(self,request):
-        
         payload=request.data
         password=payload.get('password', None)
         username=payload.get('username', None)
         first_name=payload.get('first_name', None)
         last_name=payload.get('last_name', None)
-        if not (password and username and first_name and last_name):
+        email=payload.get('email', None)
+        phone_no=payload.get('phone_no', None)
+        if not (password and username and first_name and last_name and email and phone_no):
             return Response({'Error': "Invalid form data"},
                             status=status.HTTP_400_BAD_REQUEST)
         
@@ -107,18 +110,16 @@ class GoogleLogin(APIView):
         api_uri = 'auth/login/google/'
         redirect_uri = f'{domain}{api_uri}'
 
-        access_token, _ = google_get_tokens(code=code, redirect_uri=redirect_uri)
-        user_data = google_get_user_info(access_token=access_token)
-
-        profile_data = {
-            'email': user_data['email'],
-            'first_name': user_data.get('givenName', ''),
-            'last_name': user_data.get('familyName', ''),
-        }
-
-        # Login and Signup Flow in the same API
         try:
-            user=LoginUser.objects.get(email=profile_data['email'])
+            access_token, _ = google_get_tokens(code=code, redirect_uri=redirect_uri)
+            user_data = google_get_user_info(access_token=access_token)
+        
+        except ValidationError:
+            params=urlencode({'error':'true'})
+            res=redirect(f'{login_url}?{params}')
+        
+        try:
+            user=LoginUser.objects.get(email=user_data['email'])
             response={
                 'id': user.id
             }
@@ -128,31 +129,44 @@ class GoogleLogin(APIView):
             res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
         
         except LoginUser.DoesNotExist:
-            user_serializer=UserSerializer(data=profile_data)
-            if user_serializer.is_valid():
-                user=user_serializer.save()
-                response={
-                    'id': user.id
-                }
-                token=jwt.encode(payload=response,key=settings.JWT_KEY,algorithm=settings.JWT_ALGO)
-                token_age=timedelta(days=30).total_seconds()
-                res=redirect(settings.FRONTEND_DASHBOARD_URL)
-                res.set_cookie("JWT_TOKEN", token, httponly=True, max_age=token_age)
-                
-                #Setting up profile for user which he/she can edit afterwards
-                user_profile=UserProfile.objects.create(user=user)
-                user_profile.save()
-                #Setting up Integrations
-                integration=Integrations.objects.create(user=user)
-                integration.save()
+            params=urlencode({'error':'true'})
+            res=redirect(f'{login_url}?{params}')
             
-            else:
-                params = urlencode({'error': "Signup failed"})
-                res=redirect(f'{login_url}?{params}')
-        
         finally:
             return res
 
+
+class GoogleSignup(APIView):
+    def get(self, request, *args, **kwargs):
+        input_serializer = InputSerializer(data=request.query_params)
+        input_serializer.is_valid(raise_exception=True)
+
+        validated_data = input_serializer.validated_data
+
+        code = validated_data.get('code')
+        error = validated_data.get('error')
+
+        signup_url = settings.FRONTEND_SIGNUP_URL
+
+        if error or not code:
+            params = urlencode({'error': error})
+            return redirect(f'{signup_url}?{params}')
+
+        domain = settings.BACKEND_DOMAIN
+        api_uri = 'auth/signup/google/'
+        redirect_uri = f'{domain}{api_uri}'
+
+        try:
+            access_token, _ = google_get_tokens(code=code, redirect_uri=redirect_uri)
+            user_data = google_get_user_info(access_token=access_token)
+        
+        except ValidationError:
+            params=urlencode({'error':'true'})
+            res=redirect(f'{signup_url}?{params}')
+            
+        params=urlencode({'email':user_data['email']})
+        res=redirect(f'{signup_url}?{params}')
+        return res
 
 class Logout(APIView):
     @auth_user
