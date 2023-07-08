@@ -70,33 +70,34 @@ class EventHandler(APIView):
             profile=UserProfile.objects.select_related('user').get(user__id=user_dict['id'])
             calender_success=False
             zoom_success=False
-            try:
-                creds=Credentials(None,
-                            refresh_token=integration.calender_integration,
-                            token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
-                            client_id=settings.GOOGLE_CLIENT_ID,
-                            client_secret=settings.GOOGLE_CLIENT_SECRET)
-                creds.refresh(Request())
-                if creds.valid:
-                    calender_service=build('calendar', 'v3', credentials=creds)
-                    event= create_calender_event(
-                        service=calender_service,
-                        summary=payload.get('title',''),
-                        description=payload.get('description',''),
-                        meeting=meeting,
-                        start=start_temp.isoformat(),
-                        due=due_temp.isoformat(),
-                        timezone=profile.timezone,
-                        user_id=user_dict['id'],
-                        contact=contact
-                    )
-                    if event!=-1:
-                        calender_success=True
-                        payload['calender_event_id']=event.get('id',None)
-                        payload['calender_event_link']=event.get('htmlLink',None)
-                    
-            except:
-                integration.calender_integration=None
+            if integration.calender_integration:
+                try:
+                    creds=Credentials(None,
+                                refresh_token=integration.calender_integration,
+                                token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
+                                client_id=settings.GOOGLE_CLIENT_ID,
+                                client_secret=settings.GOOGLE_CLIENT_SECRET)
+                    creds.refresh(Request())
+                    if creds.valid:
+                        calender_service=build('calendar', 'v3', credentials=creds)
+                        event= create_calender_event(
+                            service=calender_service,
+                            summary=payload.get('title',''),
+                            description=payload.get('description',''),
+                            meeting=meeting,
+                            start=start_temp.isoformat(),
+                            due=due_temp.isoformat(),
+                            timezone=profile.timezone,
+                            user_id=user_dict['id'],
+                            contact=contact
+                        )
+                        if event!=-1:
+                            calender_success=True
+                            payload['calender_event_id']=event.get('id',None)
+                            payload['calender_event_link']=event.get('htmlLink',None)
+                        
+                except:
+                    integration.calender_integration=None
             
             
             # Zoom Meeting
@@ -104,7 +105,6 @@ class EventHandler(APIView):
                 try:
                     access_token,new_refresh_token=get_zoom_access_token(integration.zoom_integration)
                     integration.zoom_integration=new_refresh_token
-                    integration.save()
                     join_url=make_zoom_meeting(access_token=access_token,
                                           agenda=payload.get('description',''),
                                           topic=payload.get('title',''),
@@ -116,13 +116,14 @@ class EventHandler(APIView):
                     zoom_success=True                    
         
                 except PermissionDenied:
+                    integration.zoom_integration=None
                     return Response({'Error':"Zoom Integration Not done. Please Integrate Zoom to create meetings"},
                                     status=status.HTTP_412_PRECONDITION_FAILED)
                 except ValidationError:
                     return Response({'Error':"Cannot Create Meeting. Please Try Again Later"},
                                     status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            
+            integration.save()
             event_serializer=EventSerializer(data=payload)
             if event_serializer.is_valid():
                 event=event_serializer.save()
@@ -226,12 +227,12 @@ class EventHandler(APIView):
                             return Response({'Error':"Cannot Update Meeting. Please Try Again Later"},
                                     status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                     else:
-                        return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event-1"},
+                        return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event"},
                                     status=status.HTTP_401_UNAUTHORIZED)
             except Exception as e:
                 integration.calender_integration=None
                 integration.save()
-                return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event-2"},
+                return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event"},
                                     status=status.HTTP_401_UNAUTHORIZED)
             
             finally:

@@ -103,8 +103,8 @@ class CalenderIntegrationHandler(APIView):
     def get(self, request, user_dict, *args, **kwargs):
         integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
         if integration.calender_integration is not None:
-            return Response({'Error':"Calender integration already exists"},
-                            status=status.HTTP_412_PRECONDITION_FAILED)
+            params = urlencode({'calender_error': 'true'})
+            return redirect(f'{dashboard_url}?{params}')
             
         input_serializer = self.InputSerializer(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
@@ -116,7 +116,7 @@ class CalenderIntegrationHandler(APIView):
         dashboard_url = settings.FRONTEND_DASHBOARD_URL
 
         if error or not code:
-            params = urlencode({'error': error})
+            params = urlencode({'calender_error': 'true'})
             return redirect(f'{dashboard_url}?{params}')
 
         domain = settings.BACKEND_DOMAIN
@@ -127,7 +127,8 @@ class CalenderIntegrationHandler(APIView):
         integration.calender_integration=refresh_token
         integration.save()
         
-        res=redirect(dashboard_url)
+        params=urlencode({'calender_success': 'true'})
+        res=redirect(f'{dashboard_url}?{params}')
         return res
 
 
@@ -140,8 +141,8 @@ class ZoomIntegrationHandler(APIView):
     def get(self,request,user_dict,*args,**kwargs):
         integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
         if integration.zoom_integration is not None:
-            return Response({'Error':"Zoom integration already exists"},
-                            status=status.HTTP_412_PRECONDITION_FAILED)
+            params = urlencode({'zoom_error': 'true'})
+            return redirect(f'{dashboard_url}?{params}')
             
         input_serializer = self.InputSerializer(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
@@ -153,7 +154,7 @@ class ZoomIntegrationHandler(APIView):
         dashboard_url = settings.FRONTEND_DASHBOARD_URL
 
         if error or not code:
-            params = urlencode({'error': 'true'})
+            params = urlencode({'zoom_error': 'true'})
             return redirect(f'{dashboard_url}?{params}')
         
         domain = settings.BACKEND_DOMAIN
@@ -164,6 +165,7 @@ class ZoomIntegrationHandler(APIView):
         integration.zoom_integration=refresh_token
         integration.save()
         
-        res=redirect(dashboard_url)
+        params=urlencode({'zoom_success': 'true'})
+        res=redirect(f'{dashboard_url}?{params}')
         return res
     
