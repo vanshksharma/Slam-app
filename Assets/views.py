@@ -11,6 +11,7 @@ from Projects.models import Project
 from django.db.models import Q
 from .decorators import auth_asset
 from .utils import upload_to_s3, delete_from_s3
+import os
 
 
 class AssetHandler(APIView):
@@ -64,8 +65,9 @@ class AssetHandler(APIView):
             if not force=='true':
                 return Response({'Error':"Files with same name already exists"},
                                 status=status.HTTP_409_CONFLICT)
-                
-        object_key=f'user_{user_dict["id"]}/{file.name}:{datetime.now().isoformat()}'
+        
+        filename, file_extension = os.path.splitext(file.name)
+        object_key=f'user_{user_dict["id"]}/{filename}:{datetime.now().isoformat()}{file_extension}'
         res=upload_to_s3(file,object_key)
         if res==False:
             return Response({'Error':"Failed to Upload Asset"},
