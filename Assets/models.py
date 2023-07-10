@@ -11,5 +11,5 @@ class Asset(models.Model):
     created_at=models.DateField(default=date.today)
     updated_at=models.DateField(default=date.today)
     project=models.ForeignKey(Project, on_delete=models.SET_NULL, db_column='project',null=True)
-    filename=models.CharField(max_length=20, null=False)
+    filename=models.CharField(max_length=100, null=False)
     
