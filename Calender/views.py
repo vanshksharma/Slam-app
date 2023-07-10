@@ -156,7 +156,6 @@ class EventHandler(APIView):
         due=payload.get('due', None)
         payload.pop('calender_event_id',None)
         payload.pop('calender_event_link',None)
-        payload.pop('link',None)
         
         if _status:
             try:
