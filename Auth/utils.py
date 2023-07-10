@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 
 
-def google_get_access_token(*, code: str, redirect_uri: str) -> str:
+def google_get_tokens(*, code: str, redirect_uri: str) -> str:
     data = {
         'code': code,
         'client_id': settings.GOOGLE_CLIENT_ID,
@@ -17,9 +17,9 @@ def google_get_access_token(*, code: str, redirect_uri: str) -> str:
     if not response.ok:
         raise ValidationError('Failed to obtain access token from Google.')
 
-    access_token = response.json()['access_token']
+    access_token,refresh_token = response.json()['access_token'],response.json().get('refresh_token',None)
 
-    return access_token
+    return access_token,refresh_token
 
 
 def google_get_user_info(*, access_token: str):

@@ -35,12 +35,12 @@ def auth_task(func):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            task = Task.objects.select_related('project').get(id=task_id)
+            task = Task.objects.select_related('user','project').get(id=task_id)
         except (Task.DoesNotExist, ValueError):
             return Response({'Error': "Please Enter Valid Task ID"},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if task.project.contact.user.id != user_dict['id']:
+        if task.user.id != user_dict['id']:
             return Response({'Error': "The Task does not belong to the user"},
                             status=status.HTTP_403_FORBIDDEN)
 

@@ -7,5 +7,6 @@ class PriorityConstant(Enum):
     HIGH = "High"
 
 class StatusConstant(Enum):
-    INCOMPLETE = "Incomplete"
+    NOT_STARTED = "Not Started"
+    IN_PROGRESS = "In Progress"
     COMPLETE = "Complete"

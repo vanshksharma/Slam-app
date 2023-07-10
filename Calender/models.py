@@ -9,8 +9,11 @@ class Event(models.Model):
     title=models.CharField(max_length=20,null=False)
     contact=models.ForeignKey(Contact,on_delete=models.CASCADE,db_column="contact")
     description=models.TextField(max_length=250,null=True)
-    date=models.DateField(default=date.today)
+    start=models.DateTimeField()
+    due=models.DateTimeField()
     status=models.CharField(max_length=15,
                               choices=[(tag.name,tag.value) for tag in StatusConstant],
-                              default=StatusConstant.INCOMPLETE.name)
+                              default=StatusConstant.NOT_STARTED.name)
+    calender_event_id=models.CharField(max_length=50,null=True)
+    calender_event_link=models.URLField(null=True)
     link=models.URLField(null=True)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Contact, Lead, Address
+from .models import Contact, Lead
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -14,10 +14,3 @@ class LeadSerializer(serializers.ModelSerializer):
     class Meta:
         model=Lead
         fields='__all__'
-
-
-class AddressSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model=Address
-        fields='__all__'  
