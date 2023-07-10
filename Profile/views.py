@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from Auth.decorators import auth_user
 from .models import UserProfile, Integrations
-from .serializers import ProfileSerializer
+from .serializers import ProfileSerializer,IntegrationsSerializer
 from Auth.models import LoginUser
 from Auth.serializers import UserSerializer
 import bcrypt
@@ -19,7 +19,6 @@ from .utils import get_zoom_tokens
 class ProfileHandler(APIView):
     @auth_user
     def get(self,request,user_dict):
-        print(user_dict)
         profile=UserProfile.objects.get(user=user_dict['id'])
         profile_json=ProfileSerializer(profile).data
         return Response({'data': profile_json},
@@ -168,4 +167,12 @@ class ZoomIntegrationHandler(APIView):
         params=urlencode({'zoom_success': 'true'})
         res=redirect(f'{dashboard_url}?{params}')
         return res
-    
+
+
+class IntegrationHandler(APIView):
+    @auth_user
+    def get(self,request,user_dict):
+        integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
+        integration_json=IntegrationsSerializer(integration).data
+        return Response({'data': integration_json},
+                        status=status.HTTP_200_OK)
