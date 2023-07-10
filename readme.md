@@ -33,6 +33,8 @@ Body:
 - password: required
 - first_name: required
 - last_name: required
+- phone_no: required
+- company: optional
 
 Command:
 ```
@@ -43,7 +45,8 @@ curl --location 'https://api.slamapp.co/auth/signup' \
     "username":"vansh123",
     "password":"9ismine..",
     "first_name":"Vansh",
-    "last_name":"Sharma"
+    "last_name":"Sharma",
+    "phone_no":"+911234567890",
 }'
 ```
 A cookie will be set with the name "JWT_TOKEN" and the value will be the JWT token for the user.
@@ -85,6 +88,12 @@ Body:
 - name: required
 - email: required
 - contact_type: required (must be one of the following: "individual", "company")
+- phone_no: optional
+- street: optional
+- city: optional
+- state: optional
+- country: optional
+- pincode: optional
 
 Command:
 ```
@@ -143,90 +152,6 @@ curl --location --request DELETE 'https://api.slamapp.co/pipeline/contact' \
 <hr>
 <br>
 
-## Get Address (GET)
-``` https://api.slamapp.co/pipeline/address ```
-
-Command:
-```
-curl --location 'https://api.slamapp.co/pipeline/address' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk'
-```
-
-<hr>
-<br>
-
-## Post Address (POST)
-``` https://api.slamapp.co/pipeline/address ```
-
-Body:
-- contact: required
-- street: required
-- city: required
-- state: required
-- country: required
-- pincode: required
-
-Command:
-```
-curl --location 'https://api.slamapp.co/pipeline/address' \
---header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
---data '{
-    "contact":1,
-    "street":"ABCDefsc",
-    "city":"hudsnscs",
-    "state":"HUddhvd",
-    "country":"INsfad",
-    "pincode":221005
-}'
-```
-
-<hr>
-<br>
-
-## Put Address (PUT)
-``` https://api.slamapp.co/pipeline/address ```
-
-Body:
-- address: required
-- street: optional
-- city: optional
-- state: optional
-- country: optional
-  
-Command:
-```
-curl --location --request PUT 'https://api.slamapp.co/pipeline/address' \
---header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
---data '{
-    "address":1,
-    "state":"UP",
-    "country":"India"
-}'
-```
-
-<hr>
-<br>
-
-## Delete Address (DELETE)
-``` https://api.slamapp.co/pipeline/address ```
-
-Body:
-- address: required
-  
-Command:
-```
-curl --location --request DELETE 'https://api.slamapp.co/pipeline/address' \
---header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
---data '{
-    "address":1
-}'
-```
-
-<hr>
-<br>
 
 ## Get Lead (GET)
 ``` https://api.slamapp.co/pipeline/lead ```
@@ -244,6 +169,7 @@ curl --location 'https://api.slamapp.co/pipeline/lead' \
 ``` https://api.slamapp.co/pipeline/lead ```
 
 Body:
+- name: required
 - contact: required
 - amount: required ("contacted", "negotiation", "closed_won")
 - stage: required (must be one of the following: "opportunity", "contacted", "negotiation", "closed_won", "closed_lost")
@@ -257,6 +183,7 @@ curl --location 'https://api.slamapp.co/pipeline/lead' \
 --header 'Content-Type: application/json' \
 --header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
 --data '{
+    "name":"test",
     "contact":1,
     "stage":"negotiation",
     "description":"test",
@@ -333,13 +260,14 @@ curl --location 'https://api.slamapp.co/projects/project' \
 
 Body:
 - name: required
-- value: required
+- value: optional
 - contact: required
 - priority: required (must be one of the following: "low", "medium", "high")
 - start_date: required (must be in the format YYYY-MM-DD)
 - due_date: required (must be in the format YYYY-MM-DD)
-- status: required (must be one of the following: "incomplete", "complete")
+- status: required (must be one of the following: "not_started", "in_progress", "complete")
 - lead: optional
+- description: optional
 
 Command:
 ```
@@ -370,8 +298,9 @@ Body:
 - priority: optional (must be one of the following: "low", "medium", "high")
 - start_date: optional (must be in the format YYYY-MM-DD)
 - due_date: optional (must be in the format YYYY-MM-DD)
-- status: optional (must be one of the following: "incomplete", "complete")
+- status: optional (must be one of the following: "not_started", "in_progress", "complete")
 - lead: optional
+- description: optional
 
 Command:
 ```
@@ -424,12 +353,11 @@ curl --location 'https://api.slamapp.co/projects/task' \
 Body:
 - name: required
 - priority: required (must be one of the following: "low", "medium", "high")
-- project: required
-- status: required (must be one of the following: "incomplete", "complete")
-- start_date: required (must be in the format YYYY-MM-DD)
-- due_date: required (must be in the format YYYY-MM-DD)
-
-**Task Start date and Due date must be between Project Start date and Due date**
+- project: optional
+- contact: optional
+- status: required (must be one of the following: "not_started", "in_progress", "complete")
+- description: optional
+- date: required (must be in the format YYYY-MM-DD)
 
 Command:
 ```
@@ -455,10 +383,12 @@ curl --location 'https://api.slamapp.co/projects/task' \
 Body:
 - task: required
 - name: optional
+- contact: optional
+- project: optional
+- description: optional
 - priority: optional (must be one of the following: "low", "medium", "high")
-- status: optional (must be one of the following: "incomplete", "complete")
-- start_date: optional (must be in the format YYYY-MM-DD)
-- due_date: optional (must be in the format YYYY-MM-DD)
+- status: optional (must be one of the following: "not_started", "in_progress", "complete")
+- date: optional (must be in the format YYYY-MM-DD)
 
 **Task Start date and Due date must be between Project Start date and Due date**
 
@@ -516,19 +446,35 @@ curl --location 'https://api.slamapp.co/accounting/invoice' \
 
 Body:
 - contact: required
-- amount: required
-- date: required (must be in the format YYYY-MM-DD)
+- invoice_number: required
+- creation_date: required (must be in the format YYYY-MM-DD)
+- expiry_date: required (must be in the format YYYY-MM-DD)
 - project: optional
+- tax: optional
+- amount: required (must be sum of all items amount)
+- project: optional
+- notes: optional
+- items: required (must be an array of objects with the following properties: details, quantity, rate, amount)
   
 Command:
 ```
-curl --location 'https://api.slamapp.co/accounting/invoice' \
+curl --location 'http://127.0.0.1:8000/accounting/invoice' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
     "contact":1,
-    "amount":8000,
-    "date":"2023-05-05"
+    "invoice_number":"ABC12435",
+    "creation_date":"2023-05-05",
+    "expiry_date":"2024-05-05",
+    "amount":500,
+    "items":[
+        {
+            "details":"Invoice Item 1",
+            "quantity":5,
+            "rate":100,
+            "amount":500
+        }
+    ]
 }'
 
 ```
@@ -541,19 +487,36 @@ curl --location 'https://api.slamapp.co/accounting/invoice' \
 
 Body:
 - invoice: required
-- amount: optional
-- date: optional (must be in the format YYYY-MM-DD)
+- invoice_number: optional
+- creation_date: optional (must be in the format YYYY-MM-DD)
+- expiry_date: optional (must be in the format YYYY-MM-DD)
 - project: optional
+- tax: optional
+- notes: optional
+- amount: optional
+- items: optional (must be an array of objects with the following properties: details, quantity, rate, amount,item if changing existing item else details, quantity, rate, amount if adding new item)
 
 Command:
 ```
-curl --location --request PUT 'https://api.slamapp.co/accounting/invoice' \
+curl --location --request PUT 'http://127.0.0.1:8000/accounting/invoice' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
-    "invoice":1,
-    "amount":9000,
-    "date":"2024-05-06"
+    "invoice":2,
+    "amount":2000,
+    "items":[
+        {
+            "item":2,
+            "quantity":10,
+            "amount":1000
+        },
+        {
+            "details":"Item-2",
+            "quantity":1,
+            "rate":1000,
+            "amount":1000
+        }
+    ]
 }'
 ```
 
@@ -675,19 +638,35 @@ curl --location 'https://api.slamapp.co/accounting/proposal' \
 
 Body:
 - contact: required
-- amount: required
-- date: required (must be in the format YYYY-MM-DD)
+- proposal_number: required
+- creation_date: required (must be in the format YYYY-MM-DD)
+- expiry_date: required (must be in the format YYYY-MM-DD)
+- project: optional
+- tax: optional
+- amount: required (must be sum of all items amount)
 - lead: optional
+- notes: optional
+- items: required (must be an array of objects with the following properties: details, quantity, rate, amount)
 
 Command:
 ```
-curl --location 'https://api.slamapp.co/accounting/proposal' \
+curl --location 'http://127.0.0.1:8000/accounting/proposal' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
     "contact":1,
-    "amount":90000,
-    "date":"2023-06-06"
+    "proposal_number":"ABC12435",
+    "creation_date":"2023-05-05",
+    "expiry_date":"2024-05-05",
+    "amount":500,
+    "items":[
+        {
+            "details":"Proposal Item 1",
+            "quantity":5,
+            "rate":100,
+            "amount":500
+        }
+    ]
 }'
 ```
 
@@ -699,18 +678,31 @@ curl --location 'https://api.slamapp.co/accounting/proposal' \
 
 Body:
 - proposal: required
-- amount: optional
-- date: optional (must be in the format YYYY-MM-DD)
+- proposal_number: optional
+- creation_date: optional (must be in the format YYYY-MM-DD)
+- expiry_date: optional (must be in the format YYYY-MM-DD)
 - lead: optional
+- tax: optional
+- notes: optional
+- amount: optional
+- items: optional (must be an array of objects with the following properties: details, quantity, rate, amount,item if changing existing item else details, quantity, rate, amount if adding new item)
 
 Command:
 ```
-curl --location --request PUT 'https://api.slamapp.co/accounting/proposal' \
+curl --location --request PUT 'http://127.0.0.1:8000/accounting/proposal' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
     "proposal":1,
-    "amount":100000
+    "amount":800,
+    "items":[
+        {
+            "details":"New Product 3",
+            "quantity":2,
+            "rate":100,
+            "amount":200
+        }
+    ]
 }'
 ```
 
@@ -758,23 +750,27 @@ Body:
 - title: required
 - contact: required
 - description: optional
-- date: required (must be in the format YYYY-MM-DD)
-- status: required (must be one of the following: "incomplete", "complete")
-- link: optional
+- start: required (must be in the format YYYY-MM-DD HH:MM)
+- due: required (must be in the format YYYY-MM-DD HH:MM)
+- status:(must be one of the following: "not_started", "in_progress", "complete")
+- link: optional(If user does not create a zoom meeting through the app, they can add a link to the meeting here)
 
 Command:
 ```
-curl --location 'https://api.slamapp.co/calender/event' \
+curl --location 'https://api.slamapp.co/calender/event?meeting=true' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
-    "title":"Event_1",
+    "title":"Event-1",
     "contact":1,
-    "description":"This is a test event",
-    "date":"2023-06-06",
-    "status":"incomplete"
+    "description":"This is a test event with Vansh",
+    "start":"2023-06-30 10:30",
+    "due":"2023-06-30 11:30",
+    "status":"not_started"
 }'
 ```
+
+**For Creating Zoom meeting send a query parameter meeting='true'**
 
 <hr>
 <br>
@@ -786,21 +782,22 @@ Body:
 - event: required
 - title: optional
 - description: optional
-- date: optional (must be in the format YYYY-MM-DD)
-- status: optional (must be one of the following: "incomplete", "complete")
+- start: optional (must be in the format YYYY-MM-DD HH:MM)
+- due: optional (must be in the format YYYY-MM-DD HH:MM)
+- status: (must be one of the following: "not_started", "in_progress", "complete")
 - link: optional
 
 Command:
 ```
-curl --location --request PUT 'https://api.slamapp.co/calender/event' \
+curl --location --request PUT 'http://127.0.0.1:8000/calender/event' \
 --header 'Content-Type: application/json' \
---header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
 --data '{
-    "event":1,
-    "status":"complete"
+    "event":25,
+    "title":"Renamed Once Again"
 }'
 ```
-
+**Meetings Cannot be created in put calls**
 <hr>
 <br>
 
@@ -851,7 +848,6 @@ Body:
 - address: optional
 - city: optional
 - pincode: optional
-- phone_no: optional
 
 Command:
 ```
@@ -859,8 +855,6 @@ curl --location --request PUT 'https://api.slamapp.co/profile/profile' \
 --header 'Content-Type: application/json' \
 --header 'Cookie: JWT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6NH0.eYPJ9nK6fnbho1y1Oi1XZxbOB4kZh4jqpa2FJsqR_nk' \
 --data '{
-    "user":4,
-    "phone_no":"+919473746140",
     "pincode":221005,
     "legal_name":"Vansh Kumar Sharma",
     "timezone":"Asia/Dubai"
@@ -887,9 +881,6 @@ curl --location 'https://api.slamapp.co/profile/account' \
 ``` https://api.slamapp.co/profile/account ```
 
 Body:
-- first_name: optional
-- last_name: optional
-- username: optional
 - password: optional
 
 Command:
@@ -917,3 +908,74 @@ curl --location --request DELETE 'https://api.slamapp.co/profile/account' \
 
 <hr>
 <br>
+
+
+# Assets API
+## Get Assets (GET)
+``` https://api.slamapp.co/assets/asset ```
+
+Command:
+```
+curl --location 'https://api.slamapp.co/assets/asset' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg'
+```
+
+<hr>
+<br>
+
+## Post Assets (POST)
+``` https://api.slamapp.co/assets/asset ```
+
+Body:
+- asset: required (the file to be uploaded in multipart form data)
+- project: optional
+
+Command:
+```
+curl --location 'https://api.slamapp.co/assets/asset' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
+--form 'asset=@"/C:/Users/bgnva/Downloads/road-sign-warns-wild-animals-crossing-warning-set-autumn-forest-forewarn-161658415.jpg"'
+```
+
+**If same filename exists, pass the query_parameter force='true' to override it**
+<hr>
+<br>
+
+## Put Assets (PUT)
+``` https://api.slamapp.co/assets/asset ```
+
+Body:
+- asset: required (the id of the asset, different from the POST call)
+- project: optional
+- filename: optional
+
+Command:
+```
+curl --location --request PUT 'http://127.0.0.1:8000/assets/asset' \
+--header 'Content-Type: application/json' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
+--data '{
+    "asset":9,
+    "filename":"MyImage.png"
+}'
+```
+
+**Be sure to use the same extension of the original filename when changing filename**
+<hr>
+<br>
+
+## Delete Assets (DELETE)
+``` https://api.slamapp.co/assets/asset ```
+
+Body:
+- asset: required
+  
+Command:
+```
+curl --location --request DELETE 'https://api.slamapp.co/assets/asset' \
+--header 'Content-Type: application/json' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg' \
+--data '{
+    "asset":5
+}'
+```
