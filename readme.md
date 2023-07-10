@@ -979,3 +979,132 @@ curl --location --request DELETE 'https://api.slamapp.co/assets/asset' \
     "asset":5
 }'
 ```
+
+<hr>
+<br>
+
+# Integration API
+
+## Get Integration (GET)
+
+``` https://api.slamapp.co/profile/integration ```
+
+Command:
+```
+curl --location 'http://127.0.0.1:8000/profile/integration' \
+--header 'Cookie: JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MX0.fzKy1H_vgaWe4c7fXtJz82iT7AFaxqO2kCWAPVR92Dg'
+```
+
+<hr>
+<br>
+
+
+# Google Login
+
+**Make A Button with the following On Click**
+```
+const openGoogleLoginPage = useCallback(() => {
+    const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  
+    const scope = [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
+    ].join(' ');
+  
+    const params = {
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: LOGIN_REDIRECT_URI,
+      access_type: 'offline',
+      prompt: 'consent',
+      scope
+    };
+  
+    const urlParams = new URLSearchParams(params).toString();
+  
+    window.location = `${googleAuthUrl}?${urlParams}`;
+  }, []);
+```
+
+**If Successfull the User gets redirected to the dashboard. If failed, the user gets redirected to the login url with the query_parameter error. If error is set, then use it to display message. NOTE- Keep the client id and redirect uri in the environment and do not hardcode it.**
+
+
+# Google Signup
+
+**Make A Button with the following On Click**
+```
+const openGoogleLoginPage = useCallback(() => {
+    const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  
+    const scope = [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
+    ].join(' ');
+  
+    const params = {
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: SIGNUP_REDIRECT_URI,
+      access_type: 'offline',
+      prompt: 'consent',
+      scope
+    };
+  
+    const urlParams = new URLSearchParams(params).toString();
+  
+    window.location = `${googleAuthUrl}?${urlParams}`;
+  }, []);
+```
+
+**If Successfull the User gets redirected to the signup url with the 'email' in the query parameter email. Use it to proceed for the further signup process. If failed, the user gets redirected to the signup url with the query_parameter error. If error is set, then use it to display message. NOTE- Keep the client id and redirect uri in the environment and do not hardcode it.**
+
+# Calender Integration
+
+**Make A Button with the following On Click**
+
+```
+const openGoogleCalenderPage = useCallback(() => {
+    const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  
+    const scope = [
+      'https://www.googleapis.com/auth/calendar.events'
+    ].join(' ');
+  
+    const params = {
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: CALENDER_REDIRECT_URL,
+      access_type: 'offline',
+      prompt: 'consent',
+      scope
+    };
+  
+    const urlParams = new URLSearchParams(params).toString();
+  
+    window.location = `${googleAuthUrl}?${urlParams}`;
+  }, []);
+```
+
+**If Successfull the User gets redirected to the dashboard with the query parameter calender_success. Use it to display desired message. If failed, the user gets redirected to the dashboard with the query_parameter calender_error. If it is set, then use it to display message. NOTE- Keep the client id and redirect uri in the environment and do not hardcode it. Also, Once the integration is done, Freeze the button for doing integration. You can check if integration is done or not by checking calender_success or by calling the integration get api and checking the value of 'calender_integration' field in the response. It will be null if integration is not done.**
+
+
+# Zoom Integration
+
+**Make A Button with the following On Click**
+```
+const openzoomLoginPage = useCallback(() => {
+    const zoomAuthUrl = 'https://zoom.us/oauth/authorize';
+  
+    const params = {
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: ZOOM_REDIRECT_URL
+    };
+  
+    const urlParams = new URLSearchParams(params).toString();
+  
+    window.location = `${zoomAuthUrl}?${urlParams}`;
+  }, []);
+```
+
+**If Successfull the User gets redirected to the dashboard with the query parameter zoom_success. Use it to display desired message. If failed, the user gets redirected to the dashboard with the query_parameter zoom_error. If it is set, then use it to display message. NOTE- Keep the client id and redirect uri in the environment and do not hardcode it. Also, Once the integration is done, Freeze the button for doing integration. You can check if integration is done or not by checking zoom_success or by calling the integration get api and checking the value of 'zoom_integration' field in the response. It will be null if integration is not done.**
