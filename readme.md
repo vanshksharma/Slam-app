@@ -923,6 +923,8 @@ curl --location 'https://api.slamapp.co/assets/asset' \
 <hr>
 <br>
 
+**Send a query parameter 'project' with value equal to project id to get the assets linked to that project**
+
 ## Post Assets (POST)
 ``` https://api.slamapp.co/assets/asset ```
 
