@@ -116,7 +116,7 @@ class ProjectHandler(APIView):
                 _status=StatusConstant[_status.upper()]
                 payload['status']=_status.name
                 if _status==StatusConstant.COMPLETE:
-                    incomplete_tasks=Task.objects.select_related('project').filter(project__id=project.id, status=StatusConstant.INCOMPLETE.name).count()
+                    incomplete_tasks=Task.objects.select_related('project').filter(Q(project__id=project.id) & (Q(status=StatusConstant.IN_PROGRESS.name) | Q(status=StatusConstant.NOT_STARTED.name))).count()
                     if incomplete_tasks>0:
                         return Response({'Error': "Complete all the tasks before marking the project as Complete"},
                                         status=status.HTTP_400_BAD_REQUEST)
@@ -292,8 +292,8 @@ class TaskHandler(APIView):
                 return Response({'Error': 'Invalid Status Provided'},
                                     status=status.HTTP_400_BAD_REQUEST)
             
-            if _status==StatusConstant.INCOMPLETE:
-                if task.project.status==StatusConstant.COMPLETE.name:
+            if _status==StatusConstant.IN_PROGRESS or _status==StatusConstant.NOT_STARTED:
+                if task.project and task.project.status==StatusConstant.COMPLETE.name:
                     return Response({'Error': "Cannot mark the task of an already completed project as Incomplete"},
                                     status=status.HTTP_400_BAD_REQUEST)
         
