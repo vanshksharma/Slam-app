@@ -33,9 +33,9 @@ def update_calender_event(service,event_id,summary,description,start,due):
     try:
         event = service.events().get(calendarId='primary', eventId=event_id).execute()
         event['summary'] = summary if summary else event['summary']
-        event['description'] = description if description else event['description']
-        event['start']['dateTime'] = datetime.strptime(start, "%Y-%m-%d %H:%M") if start else event['start']['dateTime']
-        event['end']['dateTime'] = datetime.strptime(due, "%Y-%m-%d %H:%M") if due else event['end']['dateTime']
+        event['description'] = description if description else event.get('description',"")
+        event['start']['dateTime'] = start if start else event['start']['dateTime']
+        event['end']['dateTime'] = due if due else event['end']['dateTime']
         
         updated_event = service.events().update(calendarId='primary', eventId=event_id, body=event,sendUpdates='all').execute()
     

@@ -200,10 +200,10 @@ class EventHandler(APIView):
         payload_serializer=EventSerializer(event, data=payload, partial=True)
         if payload_serializer.is_valid():
             # Updating Google Calendar Event
+            update_success=False
             try:
                 if event.calender_event_id:
                     integration=Integrations.objects.select_related('user').get(user__id=user_dict['id'])
-                    update_success=False
                     creds=Credentials(None,
                                 refresh_token=integration.calender_integration,
                                 token_uri=settings.GOOGLE_ACCESS_TOKEN_OBTAIN_URL,
@@ -217,8 +217,8 @@ class EventHandler(APIView):
                             event_id=event.calender_event_id,
                             summary=payload.get('title',''),
                             description=payload.get('description',''),
-                            start=start,
-                            due=due,
+                            start=datetime.strptime(start, "%Y-%m-%d %H:%M").isoformat() if start else None,
+                            due=datetime.strptime(due, "%Y-%m-%d %H:%M").isoformat() if due else None
                         )
                         if new_event!=-1:
                             update_success=True
@@ -234,17 +234,16 @@ class EventHandler(APIView):
                 return Response({'Error':"Calender Integration Expired. Please Connect Calender once more to update Event"},
                                     status=status.HTTP_401_UNAUTHORIZED)
             
-            finally:
-                event_serializer=EventSerializer(event,data=payload,partial=True)
-                if event_serializer.is_valid():
-                    event=event_serializer.save()
-                    event_json=event_serializer.data
-                    res_payload={'data': event_json}
-                    res_payload.update({
-                        'update_success':update_success
-                    })
-                    return Response(res_payload,
-                                    status=status.HTTP_200_OK)
+            event_serializer=EventSerializer(event,data=payload,partial=True)
+            if event_serializer.is_valid():
+                event=event_serializer.save()
+                event_json=event_serializer.data
+                res_payload={'data': event_json}
+                res_payload.update({
+                    'update_success':update_success
+                })
+                return Response(res_payload,
+                                status=status.HTTP_200_OK)
         else:
             return Response(payload_serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
