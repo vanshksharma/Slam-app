@@ -130,7 +130,7 @@ class ProjectHandler(APIView):
                 if start_date_temp>project.due_date:
                     return Response({'Error': "Project Start date cannot be after Due Date"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                tasks_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(start_date__lt=start_date_temp)).count()
+                tasks_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(date__lt=start_date_temp)).count()
                 if tasks_before_new_start_date>0:
                     return Response({'Error': "Project contains Tasks with start date before the start date of Project"},
                                     status=status.HTTP_400_BAD_REQUEST)
@@ -144,7 +144,7 @@ class ProjectHandler(APIView):
                 if due_date_temp<project.start_date:
                     return Response({'Error': "Project Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                tasks_after_new_due_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(due_date__gt=due_date_temp)).count()
+                tasks_after_new_due_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & Q(date__gt=due_date_temp)).count()
                 if tasks_after_new_due_date>0:
                     return Response({'Error': "Project contains Tasks with Due date after the Due date of Project"},
                                     status=status.HTTP_400_BAD_REQUEST)
@@ -160,7 +160,7 @@ class ProjectHandler(APIView):
                 if due_date_temp<start_date_temp:
                         return Response({'Error': "Due date cannot be before Start date"},
                                         status=status.HTTP_400_BAD_REQUEST)
-                tasks_after_new_due_date_and_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & (Q(due_date__gt=due_date_temp) | Q(start_date__lt=start_date_temp))).count()
+                tasks_after_new_due_date_and_before_new_start_date=Task.objects.select_related('project').filter(Q(project__id=project.id) & (Q(date__gt=due_date_temp) | Q(date__lt=start_date_temp))).count()
                 if tasks_after_new_due_date_and_before_new_start_date>0:
                     return Response({'Error': "Project contains Tasks with Due date after the Due date of Project or with Start date before the Start date of Project"},
                                     status=status.HTTP_400_BAD_REQUEST)
