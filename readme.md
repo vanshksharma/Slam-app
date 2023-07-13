@@ -1110,3 +1110,69 @@ const openzoomLoginPage = useCallback(() => {
 ```
 
 **If Successfull the User gets redirected to the dashboard with the query parameter zoom_success. Use it to display desired message. If failed, the user gets redirected to the dashboard with the query_parameter zoom_error. If it is set, then use it to display message. NOTE- Keep the client id and redirect uri in the environment and do not hardcode it. Also, Once the integration is done, Freeze the button for doing integration. You can check if integration is done or not by checking zoom_success or by calling the integration get api and checking the value of 'zoom_integration' field in the response. It will be null if integration is not done.**
+
+# Boto3 Command to send mail using AWS SDK
+
+**First Create a Client**
+
+```
+import boto3
+client = boto3.client(
+    'ses',
+    region_name=region,
+    aws_access_key_id='aws_access_key_string',
+    aws_secret_access_key='aws_secret_key_string'
+)
+```
+
+**Send mail using the following commands**
+
+```
+response = client.send_email(
+    Source='string',
+    Destination={
+        'ToAddresses': [
+            'string',
+        ],
+        'CcAddresses': [
+            'string',
+        ],
+        'BccAddresses': [
+            'string',
+        ]
+    },
+    Message={
+        'Subject': {
+            'Data': 'string',
+            'Charset': 'string'
+        },
+        'Body': {
+            'Text': {
+                'Data': 'string',
+                'Charset': 'string'
+            },
+            'Html': {
+                'Data': 'string',
+                'Charset': 'string'
+            }
+        }
+    },
+    ReplyToAddresses=[
+        'string',
+    ],
+    ReturnPath='string',
+    SourceArn='string',
+    ReturnPathArn='string',
+    Tags=[
+        {
+            'Name': 'string',
+            'Value': 'string'
+        },
+    ],
+    ConfigurationSetName='string'
+)
+```
+
+**For More Info Refer- https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ses/client/send_email.html**
+
+**We are using django-ses package and builtin send_mail function for Sending mails**
